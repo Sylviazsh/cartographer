@@ -342,10 +342,10 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
     return *candidates.begin();
   }
 
-  Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters);
-  best_high_resolution_candidate.score = min_score;
-  for (const Candidate2D& candidate : candidates) {
-    if (candidate.score <= min_score) {
+  Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters); // 讨论分层并计算目标函数值
+  best_high_resolution_candidate.score = min_score; // 更新best score
+  for (const Candidate2D& candidate : candidates) { // 在分支定界中for循环用来分层
+    if (candidate.score <= min_score) { // 若该值不优，则减枝
       break;
     }
     std::vector<Candidate2D> higher_resolution_candidates;
@@ -370,7 +370,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
                     &higher_resolution_candidates);
     best_high_resolution_candidate = std::max(
         best_high_resolution_candidate,
-        BranchAndBound(discrete_scans, search_parameters,
+        BranchAndBound(discrete_scans, search_parameters, // 利用递归，继续搜索
                        higher_resolution_candidates, candidate_depth - 1,
                        best_high_resolution_candidate.score));
   }

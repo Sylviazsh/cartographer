@@ -93,7 +93,7 @@ MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
         &thread_pool_);
   }
   if (options.collate_by_trajectory()) {
-    sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>();
+    sensor_collator_ = absl::make_unique<sensor::TrajectoryCollator>(); // 数据收集器，把所需要的数据都收集齐了往外分发，否则就不往外分发
   } else {
     sensor_collator_ = absl::make_unique<sensor::Collator>();
   }
