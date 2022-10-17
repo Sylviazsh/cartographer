@@ -13,14 +13,14 @@
 -- limitations under the License.
 
 TRAJECTORY_BUILDER_2D = {
-  use_imu_data = true,
+  use_imu_data = true, -- 2D可用可不用，3D建议用
   min_range = 0.,
-  max_range = 30.,
+  max_range = 30., -- sensor输入有效值：0～30m
   min_z = -0.8,
   max_z = 2.,
   missing_data_ray_length = 5.,
-  num_accumulated_range_data = 1,
-  voxel_filter_size = 0.025,
+  num_accumulated_range_data = 1, -- batch_size，sensor按batch传输数据
+  voxel_filter_size = 0.025, -- cube size，用体素滤波降采样，计算一个cube中点的质心，用质心表示该体素的pose。cube越大，点云越稀疏，计算量越小
 
   adaptive_voxel_filter = {
     max_length = 0.5,
@@ -44,7 +44,7 @@ TRAJECTORY_BUILDER_2D = {
 
   ceres_scan_matcher = {
     occupied_space_weight = 1.,
-    translation_weight = 10.,
+    translation_weight = 10., --weight表示data信任度
     rotation_weight = 40.,
     ceres_solver_options = {
       use_nonmonotonic_steps = false,
@@ -53,14 +53,14 @@ TRAJECTORY_BUILDER_2D = {
     },
   },
 
-  motion_filter = {
+  motion_filter = { -- 插入scan的阈值，scan的时间、距离、角度超过阈值才会插入
     max_time_seconds = 5.,
     max_distance_meters = 0.2,
     max_angle_radians = math.rad(1.),
   },
 
   -- TODO(schwoere,wohe): Remove this constant. This is only kept for ROS.
-  imu_gravity_time_constant = 10.,
+  imu_gravity_time_constant = 10., -- 所有时间单位为秒
   pose_extrapolator = {
     use_imu_based = false,
     constant_velocity = {
@@ -85,9 +85,9 @@ TRAJECTORY_BUILDER_2D = {
   },
 
   submaps = {
-    num_range_data = 90,
+    num_range_data = 90, -- 达到足够数量时，submap结束
     grid_options_2d = {
-      grid_type = "PROBABILITY_GRID",
+      grid_type = "PROBABILITY_GRID", -- 或“Truncated Signed Distance Fields (TSDF)”
       resolution = 0.05,
     },
     range_data_inserter = {

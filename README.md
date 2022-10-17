@@ -39,6 +39,34 @@ Getting started
 .. _our Read the Docs site: https://google-cartographer.readthedocs.io
 .. _creating an issue: https://github.com/cartographer-project/cartographer_ros/issues/new?labels=question
 
+My note
+===============
+- 运行rosbag: 
+1. 2D demo
+```
+roslaunch cartographer_ros demo_backpack_2d.launch bag_filename:=${HOME}/Downloads/cartographer_paper_deutsches_museum.bag
+```
+2. Pure localization
+    1. Generate the map
+    ```
+    roslaunch cartographer_ros offline_backpack_2d.launch bag_filenames:=${HOME}/Downloads/b2-2016-04-05-14-44-52.bag
+    ```
+    2. pure localization
+    ```
+    roslaunch cartographer_ros demo_backpack_2d_localization.launch \
+   load_state_filename:=${HOME}/Downloads/b2-2016-04-05-14-44-52.bag.pbstream \
+   bag_filename:=${HOME}/Downloads/b2-2016-04-27-12-31-41.bag
+    ```
+
+2. Revo LDS: an example bag captured from a low-cost Revo Laser Distance Sensor from Neato Robotics vacuum cleaners
+```
+roslaunch cartographer_ros demo_revo_lds.launch bag_filename:=${HOME}/Downloads/cartographer_paper_revo_lds.bag
+```
+3. Taurob Tracker: an example bag captured from a Taurob Tracker teleoperation robot
+```
+roslaunch cartographer_ros demo_taurob_tracker.launch bag_filename:=${HOME}/Downloads/taurob_tracker_simulation.bag
+```
+
 Contributing
 ============
 

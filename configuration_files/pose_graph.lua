@@ -13,11 +13,11 @@
 -- limitations under the License.
 
 POSE_GRAPH = {
-  optimize_every_n_nodes = 90,
+  optimize_every_n_nodes = 90, -- batch size，置0即关闭global SLAM，只进行local SLAM，一般这样去调参
   constraint_builder = {
-    sampling_ratio = 0.3,
+    sampling_ratio = 0.3, -- nodes降采样比例
     max_constraint_distance = 15.,
-    min_score = 0.55,
+    min_score = 0.55, -- 高于匹配的最低分数，就会被输入Ceres扫描匹配器以优化姿势
     global_localization_min_score = 0.6,
     loop_closure_translation_weight = 1.1e4,
     loop_closure_rotation_weight = 1e5,
@@ -62,7 +62,7 @@ POSE_GRAPH = {
   matcher_translation_weight = 5e2,
   matcher_rotation_weight = 1.6e3,
   optimization_problem = {
-    huber_scale = 1e1,
+    huber_scale = 1e1, -- huber loss的参数，该值越大，异常值的影响越大
     acceleration_weight = 1.1e2,
     rotation_weight = 1.6e4,
     local_slam_pose_translation_weight = 1e5,
@@ -83,7 +83,7 @@ POSE_GRAPH = {
       num_threads = 7,
     },
   },
-  max_num_final_iterations = 200,
+  max_num_final_iterations = 200, -- 轨迹完成后，运行全局优化的迭代次数，此时没有实时要求，可以大量迭代
   global_sampling_ratio = 0.003,
   log_residual_histograms = true,
   global_constraint_search_after_n_seconds = 10.,
