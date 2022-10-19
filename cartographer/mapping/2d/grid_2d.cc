@@ -63,13 +63,13 @@ Grid2D::Grid2D(const MapLimits& limits, float min_correspondence_cost,
     : limits_(limits),
       correspondence_cost_cells_(
           limits_.cell_limits().num_x_cells * limits_.cell_limits().num_y_cells,
-          kUnknownCorrespondenceValue),
+          kUnknownCorrespondenceValue), // 根据cells的大小生成一维向量
       min_correspondence_cost_(min_correspondence_cost),
       max_correspondence_cost_(max_correspondence_cost),
       value_to_correspondence_cost_table_(conversion_tables->GetConversionTable(
           max_correspondence_cost, min_correspondence_cost,
           max_correspondence_cost)) {
-  CHECK_LT(min_correspondence_cost_, max_correspondence_cost_);
+  CHECK_LT(min_correspondence_cost_, max_correspondence_cost_); // 检查最小值是否小于最大值
 }
 
 Grid2D::Grid2D(const proto::Grid2D& proto,

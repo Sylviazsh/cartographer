@@ -32,22 +32,22 @@ ImuTracker::ImuTracker(const double imu_gravity_time_constant,
     : imu_gravity_time_constant_(imu_gravity_time_constant),
       time_(time),
       last_linear_acceleration_time_(common::Time::min()),
-      orientation_(Eigen::Quaterniond::Identity()),
-      gravity_vector_(Eigen::Vector3d::UnitZ()),
-      imu_angular_velocity_(Eigen::Vector3d::Zero()) {}
+      orientation_(Eigen::Quaterniond::Identity()), // 初始姿态为I
+      gravity_vector_(Eigen::Vector3d::UnitZ()),// 重力方向初始化为[0,0,1]
+      imu_angular_velocity_(Eigen::Vector3d::Zero()) {} // 角速度初始化为0
 
 void ImuTracker::Advance(const common::Time time) {
   CHECK_LE(time_, time);
   const double delta_t = common::ToSeconds(time - time_);
-  const Eigen::Quaterniond rotation =
+  const Eigen::Quaterniond rotation = // 姿态变化量 = 转四元数(角速度*时间)
       transform::AngleAxisVectorToRotationQuaternion(
           Eigen::Vector3d(imu_angular_velocity_ * delta_t));
-  orientation_ = (orientation_ * rotation).normalized();
-  gravity_vector_ = rotation.conjugate() * gravity_vector_;
-  time_ = time;
+  orientation_ = (orientation_ * rotation).normalized(); // 最新姿态 = 当前姿态*姿态变化量
+  gravity_vector_ = rotation.conjugate() * gravity_vector_; // 更新重力方向
+  time_ = time; // 更新时间
 }
 
-void ImuTracker::AddImuLinearAccelerationObservation(
+void ImuTracker::AddImuLinearAccelerationObservation( // 根据读数更新线加速度，这里的线加速度是经过重力校正的
     const Eigen::Vector3d& imu_linear_acceleration) {
   // Update the 'gravity_vector_' with an exponential moving average using the
   // 'imu_gravity_time_constant'.
@@ -68,7 +68,7 @@ void ImuTracker::AddImuLinearAccelerationObservation(
   CHECK_GT((orientation_ * gravity_vector_).normalized().z(), 0.99);
 }
 
-void ImuTracker::AddImuAngularVelocityObservation(
+void ImuTracker::AddImuAngularVelocityObservation( // 根据读数更新角速度
     const Eigen::Vector3d& imu_angular_velocity) {
   imu_angular_velocity_ = imu_angular_velocity;
 }

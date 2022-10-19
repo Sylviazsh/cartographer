@@ -46,17 +46,17 @@ struct TrajectoryNode {
     common::Time time;
 
     // Transform to approximately gravity align the tracking frame as
-    // determined by local SLAM.
+    // determined by local SLAM. 利用IMU的重力传感器计算出该旋转矩阵
     Eigen::Quaterniond gravity_alignment;
 
     // Used for loop closure in 2D: voxel filtered returns in the
-    // 'gravity_alignment' frame.
+    // 'gravity_alignment' frame. 经过水平投射后的点云数据，可用于2D情况下做Loop Closure.
     sensor::PointCloud filtered_gravity_aligned_point_cloud;
 
     // Used for loop closure in 3D.
     sensor::PointCloud high_resolution_point_cloud;
     sensor::PointCloud low_resolution_point_cloud;
-    Eigen::VectorXf rotational_scan_matcher_histogram;
+    Eigen::VectorXf rotational_scan_matcher_histogram; // 旋转匹配直方图；VectorXf是一个长度可变的向量。
 
     // The node pose in the local SLAM frame.
     transform::Rigid3d local_pose;

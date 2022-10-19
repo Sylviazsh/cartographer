@@ -103,7 +103,7 @@ int MapBuilder::AddTrajectoryBuilder(
     const std::set<SensorId>& expected_sensor_ids,
     const proto::TrajectoryBuilderOptions& trajectory_options,
     LocalSlamResultCallback local_slam_result_callback) {
-  const int trajectory_id = trajectory_builders_.size();
+  const int trajectory_id = trajectory_builders_.size(); // 根据现有trajectory_builder数量生成新的trajectory_id
 
   absl::optional<MotionFilter> pose_graph_odometry_motion_filter;
   if (trajectory_options.has_pose_graph_odometry_motion_filter()) {
@@ -119,7 +119,7 @@ int MapBuilder::AddTrajectoryBuilder(
           trajectory_options.trajectory_builder_3d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
-    DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get()));
+    DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get())); // 检查类型转化，false则打印输出
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
@@ -154,6 +154,7 @@ int MapBuilder::AddTrajectoryBuilder(
         transform::ToRigid3(initial_trajectory_pose.relative_pose()),
         common::FromUniversal(initial_trajectory_pose.timestamp()));
   }
+  // 将轨迹跟踪器的配置信息和传感器配置信息保存到容器all_trajectory_builder_options_中
   proto::TrajectoryBuilderOptionsWithSensorIds options_with_sensor_ids_proto;
   for (const auto& sensor_id : expected_sensor_ids) {
     *options_with_sensor_ids_proto.add_sensor_id() = ToProto(sensor_id);
@@ -161,6 +162,7 @@ int MapBuilder::AddTrajectoryBuilder(
   *options_with_sensor_ids_proto.mutable_trajectory_builder_options() =
       trajectory_options;
   all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
+  // 检查轨迹跟踪器对象及其配置的数量，确保两者相等后返回新建的跟踪器对象的索引
   CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());
   return trajectory_id;
 }
@@ -169,7 +171,7 @@ int MapBuilder::AddTrajectoryForDeserialization(
     const proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
   const int trajectory_id = trajectory_builders_.size();
-  trajectory_builders_.emplace_back();
+  trajectory_builders_.emplace_back(); // 给vector容器添加空间
   all_trajectory_builder_options_.push_back(options_with_sensor_ids_proto);
   CHECK_EQ(trajectory_builders_.size(), all_trajectory_builder_options_.size());
   return trajectory_id;
@@ -213,9 +215,10 @@ bool MapBuilder::SerializeStateToFile(bool include_unfinished_submaps,
   return (writer.Close());
 }
 
+// 从一个proto流中加载SLAM状态
 std::map<int, int> MapBuilder::LoadState(
     io::ProtoStreamReaderInterface* const reader, bool load_frozen_state) {
-  io::ProtoStreamDeserializer deserializer(reader);
+  io::ProtoStreamDeserializer deserializer(reader); // 反序列化读取工具
 
   // Create a copy of the pose_graph_proto, such that we can re-write the
   // trajectory ids.
@@ -223,7 +226,7 @@ std::map<int, int> MapBuilder::LoadState(
   const auto& all_builder_options_proto =
       deserializer.all_trajectory_builder_options();
 
-  std::map<int, int> trajectory_remapping;
+  std::map<int, int> trajectory_remapping; // 逐条恢复trajectory
   for (int i = 0; i < pose_graph_proto.trajectory_size(); ++i) {
     auto& trajectory_proto = *pose_graph_proto.mutable_trajectory(i);
     const auto& options_with_sensor_ids_proto =
@@ -241,14 +244,14 @@ std::map<int, int> MapBuilder::LoadState(
   }
 
   // Apply the calculated remapping to constraints in the pose graph proto.
-  for (auto& constraint_proto : *pose_graph_proto.mutable_constraint()) {
+  for (auto& constraint_proto : *pose_graph_proto.mutable_constraint()) { // 恢复trajectory上的节点间的约束关系
     constraint_proto.mutable_submap_id()->set_trajectory_id(
         trajectory_remapping.at(constraint_proto.submap_id().trajectory_id()));
     constraint_proto.mutable_node_id()->set_trajectory_id(
         trajectory_remapping.at(constraint_proto.node_id().trajectory_id()));
   }
 
-  MapById<SubmapId, transform::Rigid3d> submap_poses;
+  MapById<SubmapId, transform::Rigid3d> submap_poses; // 恢复Submap
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
     for (const proto::Trajectory::Submap& submap_proto :
@@ -259,7 +262,7 @@ std::map<int, int> MapBuilder::LoadState(
     }
   }
 
-  MapById<NodeId, transform::Rigid3d> node_poses;
+  MapById<NodeId, transform::Rigid3d> node_poses; // 恢复节点的pose
   for (const proto::Trajectory& trajectory_proto :
        pose_graph_proto.trajectory()) {
     for (const proto::Trajectory::Node& node_proto : trajectory_proto.node()) {
@@ -285,7 +288,7 @@ std::map<int, int> MapBuilder::LoadState(
   }
 
   SerializedData proto;
-  while (deserializer.ReadNextSerializedData(&proto)) {
+  while (deserializer.ReadNextSerializedData(&proto)) { // 不停读取，直到读完
     switch (proto.data_case()) {
       case SerializedData::kPoseGraph:
         LOG(ERROR) << "Found multiple serialized `PoseGraph`. Serialized "

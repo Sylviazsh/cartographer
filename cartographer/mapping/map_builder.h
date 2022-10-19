@@ -32,10 +32,10 @@ namespace mapping {
 // and a PoseGraph for loop closure.
 class MapBuilder : public MapBuilderInterface {
  public:
-  explicit MapBuilder(const proto::MapBuilderOptions &options);
+  explicit MapBuilder(const proto::MapBuilderOptions &options); // explicit:指定构造函数或转换函数为显式, 即它不能用于隐式转换和复制初始化 [参考:https://zhuanlan.zhihu.com/p/52152355]
   ~MapBuilder() override {}
 
-  MapBuilder(const MapBuilder &) = delete;
+  MapBuilder(const MapBuilder &) = delete; // =delete表示弃用，则该成员函数不能被调用，即不能用这种形式构造MapBuilder对象
   MapBuilder &operator=(const MapBuilder &) = delete;
 
   int AddTrajectoryBuilder(

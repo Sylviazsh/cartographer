@@ -75,7 +75,7 @@ Submap2D::Submap2D(const Eigen::Vector2f& origin, std::unique_ptr<Grid2D> grid,
   grid_ = std::move(grid);
 }
 
-Submap2D::Submap2D(const proto::Submap2D& proto,
+Submap2D::Submap2D(const proto::Submap2D& proto, // 从proto流中构建Submap2D
                    ValueConversionTables* conversion_tables)
     : Submap(transform::ToRigid3(proto.local_pose())),
       conversion_tables_(conversion_tables) {
@@ -93,7 +93,7 @@ Submap2D::Submap2D(const proto::Submap2D& proto,
   set_insertion_finished(proto.finished());
 }
 
-proto::Submap Submap2D::ToProto(const bool include_grid_data) const {
+proto::Submap Submap2D::ToProto(const bool include_grid_data) const { // 序列化，存到proto中
   proto::Submap proto;
   auto* const submap_2d = proto.mutable_submap_2d();
   *submap_2d->mutable_local_pose() = transform::ToProto(local_pose());
@@ -124,7 +124,7 @@ void Submap2D::UpdateFromProto(const proto::Submap& proto) {
   }
 }
 
-void Submap2D::ToResponseProto(
+void Submap2D::ToResponseProto( // 从proto流中获取Submap2D
     const transform::Rigid3d&,
     proto::SubmapQuery::Response* const response) const {
   if (!grid_) return;
@@ -137,8 +137,8 @@ void Submap2D::ToResponseProto(
 void Submap2D::InsertRangeData(
     const sensor::RangeData& range_data,
     const RangeDataInserterInterface* range_data_inserter) {
-  CHECK(grid_);
-  CHECK(!insertion_finished());
+  CHECK(grid_); // 检查是否栅格化
+  CHECK(!insertion_finished()); // 检查图是否已结束
   range_data_inserter->Insert(range_data, grid_.get());
   set_num_range_data(num_range_data() + 1);
 }
@@ -146,7 +146,7 @@ void Submap2D::InsertRangeData(
 void Submap2D::Finish() {
   CHECK(grid_);
   CHECK(!insertion_finished());
-  grid_ = grid_->ComputeCroppedGrid();
+  grid_ = grid_->ComputeCroppedGrid(); // 计算裁剪栅格图
   set_insertion_finished(true);
 }
 
@@ -161,13 +161,13 @@ std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::submaps() const {
 std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::InsertRangeData(
     const sensor::RangeData& range_data) {
   if (submaps_.empty() ||
-      submaps_.back()->num_range_data() == options_.num_range_data()) {
+      submaps_.back()->num_range_data() == options_.num_range_data()) { // 如果插入的RangeData达到一定数量，则重新添加一个submap
     AddSubmap(range_data.origin.head<2>());
   }
   for (auto& submap : submaps_) {
     submap->InsertRangeData(range_data, range_data_inserter_.get());
   }
-  if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) {
+  if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) { //如果插入的RangeData达到一定数量，则submap结束
     submaps_.front()->Finish();
   }
   return submaps();

@@ -35,13 +35,13 @@ class PoseGraphInterface {
   // 2010 IEEE/RSJ International Conference on (pp. 22--29). IEEE, 2010.
   struct Constraint {
     struct Pose {
-      transform::Rigid3d zbar_ij;
+      transform::Rigid3d zbar_ij; // 相对位姿
       double translation_weight;
       double rotation_weight;
     };
 
-    SubmapId submap_id;  // 'i' in the paper.
-    NodeId node_id;      // 'j' in the paper.
+    SubmapId submap_id;  // 'i' in the paper. Submap的index
+    NodeId node_id;      // 'j' in the paper. TrajectoryNode的index
 
     // Pose of the node 'j' relative to submap 'i'.
     Pose pose;
@@ -49,7 +49,8 @@ class PoseGraphInterface {
     // Differentiates between intra-submap (where node 'j' was inserted into
     // submap 'i') and inter-submap constraints (where node 'j' was not inserted
     // into submap 'i').
-    enum Tag { INTRA_SUBMAP, INTER_SUBMAP } tag;
+    // 每一对node和submap，都分为两种情况：节点j有插入该submap中(INTRA_SUBMAP)和没有插入该submap中(INTER_SUBMAP)。
+    enum Tag { INTRA_SUBMAP, INTER_SUBMAP } tag; 
   };
 
   struct LandmarkNode {

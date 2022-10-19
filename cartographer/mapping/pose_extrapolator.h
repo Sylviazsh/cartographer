@@ -77,18 +77,18 @@ class PoseExtrapolator : public PoseExtrapolatorInterface {
     transform::Rigid3d pose;
   };
   std::deque<TimedPose> timed_pose_queue_;
-  Eigen::Vector3d linear_velocity_from_poses_ = Eigen::Vector3d::Zero();
+  Eigen::Vector3d linear_velocity_from_poses_ = Eigen::Vector3d::Zero(); // 从持续跟踪一段时间的Pose队列中估计出来的线速度，初始化为0
   Eigen::Vector3d angular_velocity_from_poses_ = Eigen::Vector3d::Zero();
 
-  const double gravity_time_constant_;
+  const double gravity_time_constant_; // 重力的时间间隔
   std::deque<sensor::ImuData> imu_data_;
   std::unique_ptr<ImuTracker> imu_tracker_;
   std::unique_ptr<ImuTracker> odometry_imu_tracker_;
-  std::unique_ptr<ImuTracker> extrapolation_imu_tracker_;
+  std::unique_ptr<ImuTracker> extrapolation_imu_tracker_; // 经过数据融合后的结果
   TimedPose cached_extrapolated_pose_;
 
   std::deque<sensor::OdometryData> odometry_data_;
-  Eigen::Vector3d linear_velocity_from_odometry_ = Eigen::Vector3d::Zero();
+  Eigen::Vector3d linear_velocity_from_odometry_ = Eigen::Vector3d::Zero(); // 从里程计获取到的线速度，初始化为0
   Eigen::Vector3d angular_velocity_from_odometry_ = Eigen::Vector3d::Zero();
 };
 

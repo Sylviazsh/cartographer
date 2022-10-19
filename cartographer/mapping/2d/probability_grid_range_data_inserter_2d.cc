@@ -56,16 +56,16 @@ void CastRays(const sensor::RangeData& range_data,
   GrowAsNeeded(range_data, probability_grid);
 
   const MapLimits& limits = probability_grid->limits();
-  const double superscaled_resolution = limits.resolution() / kSubpixelScale;
-  const MapLimits superscaled_limits(
+  const double superscaled_resolution = limits.resolution() / kSubpixelScale; // 定义一个超分辨率像素，把当前的分辨率又划分成了kSubpixelScale份
+  const MapLimits superscaled_limits( // 根据超分辨率像素生成一个新的MapLimits
       superscaled_resolution, limits.max(),
-      CellLimits(limits.cell_limits().num_x_cells * kSubpixelScale,
+      CellLimits(limits.cell_limits().num_x_cells * kSubpixelScale, // 划分格数变成kSubpixelScale倍
                  limits.cell_limits().num_y_cells * kSubpixelScale));
-  const Eigen::Array2i begin =
+  const Eigen::Array2i begin = // 根据RangeData原点的前两项，获取其对应的栅格化坐标。该坐标是我们所求的射线的原点
       superscaled_limits.GetCellIndex(range_data.origin.head<2>());
   // Compute and add the end points.
-  std::vector<Eigen::Array2i> ends;
-  ends.reserve(range_data.returns.size());
+  std::vector<Eigen::Array2i> ends; // 该集合存储RangeData中的hits的点
+  ends.reserve(range_data.returns.size()); // 根据returns集合的大小，给向量ends预分配一块存储区
   for (const sensor::RangefinderPoint& hit : range_data.returns) {
     ends.push_back(superscaled_limits.GetCellIndex(hit.position.head<2>()));
     probability_grid->ApplyLookupTable(ends.back() / kSubpixelScale, hit_table);

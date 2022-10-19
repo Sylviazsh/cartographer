@@ -104,10 +104,10 @@ class LocalTrajectoryBuilder2D {
 
   MotionFilter motion_filter_;
   scan_matching::RealTimeCorrelativeScanMatcher2D
-      real_time_correlative_scan_matcher_;
-  scan_matching::CeresScanMatcher2D ceres_scan_matcher_;
+      real_time_correlative_scan_matcher_; // 用相关分析方法，实时扫描匹配，
+  scan_matching::CeresScanMatcher2D ceres_scan_matcher_; // Ceres方法匹配。
 
-  std::unique_ptr<PoseExtrapolator> extrapolator_;
+  std::unique_ptr<PoseExtrapolator> extrapolator_; // 轨迹推算器。融合IMU，里程计数据
 
   int num_accumulated_ = 0;
   sensor::RangeData accumulated_range_data_;
@@ -116,7 +116,7 @@ class LocalTrajectoryBuilder2D {
   absl::optional<double> last_thread_cpu_time_seconds_;
   absl::optional<common::Time> last_sensor_time_;
 
-  RangeDataCollator range_data_collator_;
+  RangeDataCollator range_data_collator_; // 收集传感器数据
 };
 
 }  // namespace mapping

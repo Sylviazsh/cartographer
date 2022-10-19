@@ -49,19 +49,26 @@ LocalTrajectoryBuilder2D::LocalTrajectoryBuilder2D(
 LocalTrajectoryBuilder2D::~LocalTrajectoryBuilder2D() {}
 
 sensor::RangeData
-LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter(
+LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter( // 将RangeData转化成重力校正后的数据，并经过VoxelFilter
     const transform::Rigid3f& transform_to_gravity_aligned_frame,
     const sensor::RangeData& range_data) const {
-  const sensor::RangeData cropped =
+  const sensor::RangeData cropped = // 裁剪数据，指定一定z轴范围内的数据
       sensor::CropRangeData(sensor::TransformRangeData(
                                 range_data, transform_to_gravity_aligned_frame),
                             options_.min_z(), options_.max_z());
-  return sensor::RangeData{
+  return sensor::RangeData{ // 体素滤波
       cropped.origin,
       sensor::VoxelFilter(cropped.returns, options_.voxel_filter_size()),
       sensor::VoxelFilter(cropped.misses, options_.voxel_filter_size())};
 }
 
+/**
+ * @brief 扫描匹配
+ * @param time 时间
+ * @param pose_prediction 由PoseExtrapolator预测的初始位姿
+ * @param filtered_gravity_aligned_point_cloud 经过重力aligned的RangeData
+ * @return 采用Ceres Scan Matcher计算出，该帧传感器数据的最优pose
+*/
 std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
     const common::Time time, const transform::Rigid2d& pose_prediction,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud) {
@@ -75,19 +82,20 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   transform::Rigid2d initial_ceres_pose = pose_prediction;
 
   if (options_.use_online_correlative_scan_matching()) {
-    const double score = real_time_correlative_scan_matcher_.Match(
+    const double score = real_time_correlative_scan_matcher_.Match( //调用RealTimeCorrelativeScanMatcher2D的方法进行匹配，返回一个得分
         pose_prediction, filtered_gravity_aligned_point_cloud,
         *matching_submap->grid(), &initial_ceres_pose);
     kRealTimeCorrelativeScanMatcherScoreMetric->Observe(score);
   }
 
+  // 调用Ceres库来实现匹配，匹配结果放到pose_observation中
   auto pose_observation = absl::make_unique<transform::Rigid2d>();
   ceres::Solver::Summary summary;
   ceres_scan_matcher_.Match(pose_prediction.translation(), initial_ceres_pose,
                             filtered_gravity_aligned_point_cloud,
                             *matching_submap->grid(), pose_observation.get(),
                             &summary);
-  if (pose_observation) {
+  if (pose_observation) { // 统计残差
     kCeresScanMatcherCostMetric->Observe(summary.final_cost);
     const double residual_distance =
         (pose_observation->translation() - pose_prediction.translation())
@@ -98,7 +106,7 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
                  pose_prediction.rotation().angle());
     kScanMatcherResidualAngleMetric->Observe(residual_angle);
   }
-  return pose_observation;
+  return pose_observation; // 返回优化后的pose
 }
 
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
@@ -127,7 +135,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   CHECK(!synchronized_data.ranges.empty());
   // TODO(gaschler): Check if this can strictly be 0.
-  CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f);
+  CHECK_LE(synchronized_data.ranges.back().point_time.time, 0.f); // 检查最后一个点的时间是否为0。正常情况应该都为0
   const common::Time time_first_point =
       time +
       common::FromSeconds(synchronized_data.ranges.front().point_time.time);
@@ -163,19 +171,19 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // Drop any returns below the minimum range and convert returns beyond the
   // maximum range into misses.
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
-    const sensor::TimedRangefinderPoint& hit =
+    const sensor::TimedRangefinderPoint& hit = // 获取第i帧点云
         synchronized_data.ranges[i].point_time;
-    const Eigen::Vector3f origin_in_local =
+    const Eigen::Vector3f origin_in_local = // 第i帧点云的原点
         range_data_poses[i] *
         synchronized_data.origins.at(synchronized_data.ranges[i].origin_index);
-    sensor::RangefinderPoint hit_in_local =
+    sensor::RangefinderPoint hit_in_local = // 将hit集转变为Local坐标系下
         range_data_poses[i] * sensor::ToRangefinderPoint(hit);
-    const Eigen::Vector3f delta = hit_in_local.position - origin_in_local;
-    const float range = delta.norm();
+    const Eigen::Vector3f delta = hit_in_local.position - origin_in_local; // 局部坐标系下由hit点到origin的射线
+    const float range = delta.norm(); //该向量的模
     if (range >= options_.min_range()) {
-      if (range <= options_.max_range()) {
+      if (range <= options_.max_range()) { // 如果该向量的模在合理范围内，则把他压入accumulated_range_data_点集中
         accumulated_range_data_.returns.push_back(hit_in_local);
-      } else {
+      } else { //否则，放入misses集中
         hit_in_local.position =
             origin_in_local +
             options_.missing_data_ray_length() / range * delta;
@@ -194,13 +202,13 @@ LocalTrajectoryBuilder2D::AddRangeData(
     last_sensor_time_ = current_sensor_time;
     num_accumulated_ = 0;
     const transform::Rigid3d gravity_alignment = transform::Rigid3d::Rotation(
-        extrapolator_->EstimateGravityOrientation(time));
+        extrapolator_->EstimateGravityOrientation(time)); // 估计重力方向
     // TODO(gaschler): This assumes that 'range_data_poses.back()' is at time
     // 'time'.
     accumulated_range_data_.origin = range_data_poses.back().translation();
     return AddAccumulatedRangeData(
         time,
-        TransformToGravityAlignedFrameAndFilter(
+        TransformToGravityAlignedFrameAndFilter( // 重力align
             gravity_alignment.cast<float>() * range_data_poses.back().inverse(),
             accumulated_range_data_),
         gravity_alignment, sensor_duration);
@@ -220,9 +228,9 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   }
 
   // Computes a gravity aligned pose prediction.
-  const transform::Rigid3d non_gravity_aligned_pose_prediction =
+  const transform::Rigid3d non_gravity_aligned_pose_prediction = // 未经重力aligned的Pose
       extrapolator_->ExtrapolatePose(time);
-  const transform::Rigid2d pose_prediction = transform::Project2D(
+  const transform::Rigid2d pose_prediction = transform::Project2D( // 重力align
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 
   const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
@@ -235,11 +243,11 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   // local map frame <- gravity-aligned frame
   std::unique_ptr<transform::Rigid2d> pose_estimate_2d =
       ScanMatch(time, pose_prediction, filtered_gravity_aligned_point_cloud);
-  if (pose_estimate_2d == nullptr) {
+  if (pose_estimate_2d == nullptr) { // 匹配为空
     LOG(WARNING) << "Scan matching failed.";
     return nullptr;
   }
-  const transform::Rigid3d pose_estimate =
+  const transform::Rigid3d pose_estimate = // 考虑重力方向，将2d pose变成3d pose
       transform::Embed3D(*pose_estimate_2d) * gravity_alignment;
   extrapolator_->AddPose(time, pose_estimate);
 
@@ -271,7 +279,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
   }
   last_wall_time_ = wall_time;
   last_thread_cpu_time_seconds_ = thread_cpu_time_seconds;
-  return absl::make_unique<MatchingResult>(
+  return absl::make_unique<MatchingResult>( // 返回匹配结果
       MatchingResult{time, pose_estimate, std::move(range_data_in_local),
                      std::move(insertion_result)});
 }
@@ -282,12 +290,12 @@ LocalTrajectoryBuilder2D::InsertIntoSubmap(
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
     const transform::Rigid3d& pose_estimate,
     const Eigen::Quaterniond& gravity_alignment) {
-  if (motion_filter_.IsSimilar(time, pose_estimate)) {
+  if (motion_filter_.IsSimilar(time, pose_estimate)) { // 如果被MotionFilter滤掉
     return nullptr;
   }
   std::vector<std::shared_ptr<const Submap2D>> insertion_submaps =
       active_submaps_.InsertRangeData(range_data_in_local);
-  return absl::make_unique<InsertionResult>(InsertionResult{
+  return absl::make_unique<InsertionResult>(InsertionResult{ // 返回插入结果
       std::make_shared<const TrajectoryNode::Data>(TrajectoryNode::Data{
           time,
           gravity_alignment,

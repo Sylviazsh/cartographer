@@ -47,10 +47,10 @@ class LocalSlamResultData;
 // optimized pose estimates.
 class TrajectoryBuilderInterface {
  public:
-  struct InsertionResult {
+  struct InsertionResult { // 插入Local Slam的一个节点（关键帧）的数据结构
     NodeId node_id;
-    std::shared_ptr<const TrajectoryNode::Data> constant_data;
-    std::vector<std::shared_ptr<const Submap>> insertion_submaps;
+    std::shared_ptr<const TrajectoryNode::Data> constant_data; // 经过处理的一帧传感器数据
+    std::vector<std::shared_ptr<const Submap>> insertion_submaps; // 子图列表
   };
 
   // A callback which is called after local SLAM processes an accumulated
@@ -64,7 +64,7 @@ class TrajectoryBuilderInterface {
 
   struct SensorId {
     enum class SensorType {
-      RANGE = 0,
+      RANGE = 0, // 激光或其他可提供点云数据的传感器，如Kinect
       IMU,
       ODOMETRY,
       FIXED_FRAME_POSE,
