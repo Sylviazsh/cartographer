@@ -239,9 +239,9 @@ class PoseGraph2D : public PoseGraph {
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   const proto::PoseGraphOptions options_;
-  GlobalSlamOptimizationCallback global_slam_optimization_callback_;
+  GlobalSlamOptimizationCallback global_slam_optimization_callback_; // 完成全局优化后的回调函数
   mutable absl::Mutex mutex_;
-  absl::Mutex work_queue_mutex_;
+  absl::Mutex work_queue_mutex_; // 一个智能指针形式的工作队列，用于记录将要完成的任务
 
   // If it exists, further work items must be added to this queue, and will be
   // considered later.
@@ -249,10 +249,10 @@ class PoseGraph2D : public PoseGraph {
 
   // We globally localize a fraction of the nodes from each trajectory.
   absl::flat_hash_map<int, std::unique_ptr<common::FixedRatioSampler>>
-      global_localization_samplers_ GUARDED_BY(mutex_);
+      global_localization_samplers_ GUARDED_BY(mutex_); // 以trajectory_id为索引的字典，用于对各个轨迹上的部分节点进行全局定位
 
   // Number of nodes added since last loop closure.
-  int num_nodes_since_last_loop_closure_ GUARDED_BY(mutex_) = 0;
+  int num_nodes_since_last_loop_closure_ GUARDED_BY(mutex_) = 0; // 计数器，记录了自从上次闭环检测之后新增的节点数量
 
   // Current optimization problem.
   std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem_;

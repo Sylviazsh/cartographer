@@ -49,14 +49,23 @@ void GrowAsNeeded(const sensor::RangeData& range_data,
                                kPadding * Eigen::Vector2f::Ones());
 }
 
+/**
+ * @brief 获得一次扫描测量过程中相关栅格的观测事件;完成查表更新
+ * @param range_data 将要处理的扫描数据
+ * @param hit_table 查找表
+ * @param miss_table 查找表
+ * @param insert_free_space 配置项，是否更新发生miss事件的栅格单元的占用概率
+ * @param probability_grid 将要更新的占用栅格
+ */
 void CastRays(const sensor::RangeData& range_data,
               const std::vector<uint16>& hit_table,
               const std::vector<uint16>& miss_table,
               const bool insert_free_space, ProbabilityGrid* probability_grid) {
-  GrowAsNeeded(range_data, probability_grid);
+  GrowAsNeeded(range_data, probability_grid); // 适当调整栅格地图的作用范围，让它能够覆盖雷达的所有扫描数据
 
+  // 构建一个分辨率更高的Maplimits对象构建一个分辨率更高的Maplimits对象，提高RayCasting的精度
   const MapLimits& limits = probability_grid->limits();
-  const double superscaled_resolution = limits.resolution() / kSubpixelScale; // 定义一个超分辨率像素，把当前的分辨率又划分成了kSubpixelScale份
+  const double superscaled_resolution = limits.resolution() / kSubpixelScale; // 把当前的分辨率划分成了kSubpixelScale份
   const MapLimits superscaled_limits( // 根据超分辨率像素生成一个新的MapLimits
       superscaled_resolution, limits.max(),
       CellLimits(limits.cell_limits().num_x_cells * kSubpixelScale, // 划分格数变成kSubpixelScale倍

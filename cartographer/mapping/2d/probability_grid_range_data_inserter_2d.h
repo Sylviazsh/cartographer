@@ -52,7 +52,7 @@ class ProbabilityGridRangeDataInserter2D : public RangeDataInserterInterface {
 
  private:
   const proto::ProbabilityGridRangeDataInserterOptions2D options_;
-  const std::vector<uint16> hit_table_;
+  const std::vector<uint16> hit_table_; // 栅格单元的占用概率的查找表
   const std::vector<uint16> miss_table_;
 };
 

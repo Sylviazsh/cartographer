@@ -74,15 +74,23 @@ ConstraintBuilder2D::~ConstraintBuilder2D() {
   CHECK(when_done_ == nullptr);
 }
 
+/**
+ * @brief 检查子图和路径节点之间是否存在可能的约束
+ * @param submap_id 子图索引
+ * @param submap 子图
+ * @param node_id 路径节点的索引
+ * @param constant_data 路径节点中记录的激光点云数据
+ * @param initial_relative_pose 路径节点相对于子图的初始位姿，提供了优化迭代的一个初值
+*/
 void ConstraintBuilder2D::MaybeAddConstraint(
     const SubmapId& submap_id, const Submap2D* const submap,
     const NodeId& node_id, const TrajectoryNode::Data* const constant_data,
     const transform::Rigid2d& initial_relative_pose) {
-  if (initial_relative_pose.translation().norm() >
+  if (initial_relative_pose.translation().norm() > // 如果初始的相对位姿显示，路径节点与子图相差很远，就直接返回不再两者之间建立约束
       options_.max_constraint_distance()) {
     return;
   }
-  if (!per_submap_sampler_
+  if (!per_submap_sampler_ // 如果采样器暂停，也直接退出
            .emplace(std::piecewise_construct, std::forward_as_tuple(submap_id),
                     std::forward_as_tuple(options_.sampling_ratio()))
            .first->second.Pulse()) {
@@ -90,11 +98,11 @@ void ConstraintBuilder2D::MaybeAddConstraint(
   }
 
   absl::MutexLock locker(&mutex_);
-  if (when_done_) {
+  if (when_done_) { // 检查回调函数对象when_done_是否存在，若存在则说明上一个闭环检测迭代还没有完全结束
     LOG(WARNING)
         << "MaybeAddConstraint was called while WhenDone was scheduled.";
   }
-  constraints_.emplace_back();
+  constraints_.emplace_back(); // 向容器constraints_中添加新的约束
   kQueueLengthMetric->Set(constraints_.size());
   auto* const constraint = &constraints_.back();
   const auto* scan_matcher =
@@ -124,16 +132,16 @@ void ConstraintBuilder2D::MaybeAddGlobalConstraint(
   auto* const constraint = &constraints_.back();
   const auto* scan_matcher =
       DispatchScanMatcherConstruction(submap_id, submap->grid());
-  auto constraint_task = absl::make_unique<common::Task>();
-  constraint_task->SetWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
-    ComputeConstraint(submap_id, submap, node_id, true, /* match_full_submap */
+  auto constraint_task = absl::make_unique<common::Task>(); // 构建一个线程池所用的任务对象
+  constraint_task->SetWorkItem([=]() LOCKS_EXCLUDED(mutex_) { // 具体描述任务工作内容
+    ComputeConstraint(submap_id, submap, node_id, true, /* match_full_submap */ // 完成约束的计算
                       constant_data, transform::Rigid2d::Identity(),
                       *scan_matcher, constraint);
   });
-  constraint_task->AddDependency(scan_matcher->creation_task_handle);
-  auto constraint_task_handle =
+  constraint_task->AddDependency(scan_matcher->creation_task_handle); // 通过给Task添加依赖关系来保证，在进行约束计算之前扫描匹配器就已经完成构建和初始化了
+  auto constraint_task_handle = // 将计算约束的任务添加到线程池的调度队列中
       thread_pool_->Schedule(std::move(constraint_task));
-  finish_node_task_->AddDependency(constraint_task_handle);
+  finish_node_task_->AddDependency(constraint_task_handle); // 并将其设置为完成轨迹节点约束计算任务的依赖，保证在完成了所有计算约束的任务之后才会执行constraint_task的计算任务
 }
 
 void ConstraintBuilder2D::NotifyEndOfNode() {

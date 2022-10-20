@@ -101,8 +101,8 @@ using TimedPointCloud = std::vector<TimedRangefinderPoint>;
 // TODO(wohe): Retained for cartographer_ros. To be removed once it is no
 // longer used there.
 struct PointCloudWithIntensities {
-  TimedPointCloud points;
-  std::vector<float> intensities;
+  TimedPointCloud points; // (x,y,z,t)
+  std::vector<float> intensities; // points中每个元素所对应的数据强度
 };
 
 // Transforms 'point_cloud' according to 'transform'.

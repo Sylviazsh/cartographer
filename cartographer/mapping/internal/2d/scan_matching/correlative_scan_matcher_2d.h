@@ -78,9 +78,9 @@ struct Candidate2D {
       : scan_index(init_scan_index),
         x_index_offset(init_x_index_offset),
         y_index_offset(init_y_index_offset),
-        x(-y_index_offset * search_parameters.resolution),
-        y(-x_index_offset * search_parameters.resolution),
-        orientation((scan_index - search_parameters.num_angular_perturbations) *
+        x(-y_index_offset * search_parameters.resolution), // 相对于初始位姿的x偏移量
+        y(-x_index_offset * search_parameters.resolution), // 相对于初始位姿的y偏移量
+        orientation((scan_index - search_parameters.num_angular_perturbations) * // 相对于初始位姿的角度偏移量
                     search_parameters.angular_perturbation_step_size) {}
 
   // Index into the rotated scans vector.

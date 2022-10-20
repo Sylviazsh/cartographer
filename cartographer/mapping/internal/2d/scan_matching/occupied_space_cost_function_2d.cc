@@ -38,23 +38,26 @@ class OccupiedSpaceCostFunction2D {
 
   template <typename T>
   bool operator()(const T* const pose, T* residual) const {
+    // 把迭代查询的输入参数pose转换为坐标变换T,临时存在transform
     Eigen::Matrix<T, 2, 1> translation(pose[0], pose[1]);
     Eigen::Rotation2D<T> rotation(pose[2]);
     Eigen::Matrix<T, 2, 2> rotation_matrix = rotation.toRotationMatrix();
     Eigen::Matrix<T, 3, 3> transform;
     transform << rotation_matrix, translation, T(0.), T(0.), T(1.);
 
+    // 双三次插值
     const GridArrayAdapter adapter(grid_);
     ceres::BiCubicInterpolator<GridArrayAdapter> interpolator(adapter);
     const MapLimits& limits = grid_.limits();
 
+    // 针对每个hit点计算对应的残差代价
     for (size_t i = 0; i < point_cloud_.size(); ++i) {
       // Note that this is a 2D point. The third component is a scaling factor.
       const Eigen::Matrix<T, 3, 1> point((T(point_cloud_[i].position.x())),
                                          (T(point_cloud_[i].position.y())),
                                          T(1.));
-      const Eigen::Matrix<T, 3, 1> world = transform * point;
-      interpolator.Evaluate(
+      const Eigen::Matrix<T, 3, 1> world = transform * point; // hit点坐标*transform=其在地图坐标系下的坐标
+      interpolator.Evaluate( // 获取在hit点出现的概率
           (limits.max().x() - world[0]) / limits.resolution() - 0.5 +
               static_cast<double>(kPadding),
           (limits.max().y() - world[1]) / limits.resolution() - 0.5 +

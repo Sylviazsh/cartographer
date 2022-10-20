@@ -92,7 +92,7 @@ class MapLimits {
  private:
   double resolution_;
   Eigen::Vector2d max_;
-  CellLimits cell_limits_;
+  CellLimits cell_limits_; // x和y方向上的栅格数量
 };
 
 inline proto::MapLimits ToProto(const MapLimits& map_limits) {

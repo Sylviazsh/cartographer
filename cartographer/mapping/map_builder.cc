@@ -119,7 +119,7 @@ int MapBuilder::AddTrajectoryBuilder(
           trajectory_options.trajectory_builder_3d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
-    DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get())); // 检查类型转化，false则打印输出
+    DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get())); // 检查类型转化，false则报错并记录，中止程序
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,

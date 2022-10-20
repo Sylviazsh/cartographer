@@ -42,9 +42,9 @@ void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
                                      const float probability) {
   uint16& cell =
       (*mutable_correspondence_cost_cells())[ToFlatIndex(cell_index)];
-  CHECK_EQ(cell, kUnknownProbabilityValue);
-  cell =
-      CorrespondenceCostToValue(ProbabilityToCorrespondenceCost(probability));
+  CHECK_EQ(cell, kUnknownProbabilityValue); // 检查栅格单元是否未知
+  cell = // 根据索引cell_index获取目标栅格单元
+      CorrespondenceCostToValue(ProbabilityToCorrespondenceCost(probability)); // 对输入概率值取反，再映射到[1,32767]。输入描述栅格单元的占用概率，存储栅格单元的空闲概率
   mutable_known_cells_box()->extend(cell_index.matrix());
 }
 
@@ -55,18 +55,18 @@ void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
 //
 // If this is the first call to ApplyOdds() for the specified cell, its value
 // will be set to probability corresponding to 'odds'.
-bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index,
+bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index, // 通过查表来更新栅格单元的占用概率
                                        const std::vector<uint16>& table) {
-  DCHECK_EQ(table.size(), kUpdateMarker);
-  const int flat_index = ToFlatIndex(cell_index);
-  uint16* cell = &(*mutable_correspondence_cost_cells())[flat_index];
-  if (*cell >= kUpdateMarker) {
+  DCHECK_EQ(table.size(), kUpdateMarker); // 检查查找表的大小
+  const int flat_index = ToFlatIndex(cell_index); // 栅格单元的存储索引
+  uint16* cell = &(*mutable_correspondence_cost_cells())[flat_index]; // 获取对应的栅格空闲的概率
+  if (*cell >= kUpdateMarker) { // 确保该值不会超出查找表的数组边界
     return false;
   }
   mutable_update_indices()->push_back(flat_index);
-  *cell = table[*cell];
+  *cell = table[*cell]; // 通过查表更新栅格单元
   DCHECK_GE(*cell, kUpdateMarker);
-  mutable_known_cells_box()->extend(cell_index.matrix());
+  mutable_known_cells_box()->extend(cell_index.matrix()); // 将cell_index所对应的栅格的占用概率标记为已知
   return true;
 }
 
@@ -75,10 +75,10 @@ GridType ProbabilityGrid::GetGridType() const {
 }
 
 // Returns the probability of the cell with 'cell_index'.
-float ProbabilityGrid::GetProbability(const Eigen::Array2i& cell_index) const {
-  if (!limits().Contains(cell_index)) return kMinProbability;
+float ProbabilityGrid::GetProbability(const Eigen::Array2i& cell_index) const { // 获取栅格单元的占用概率
+  if (!limits().Contains(cell_index)) return kMinProbability; // 判断输入的单元索引是否在子图范围内，如果不在就直接返回最小概率
   return CorrespondenceCostToProbability(ValueToCorrespondenceCost(
-      correspondence_cost_cells()[ToFlatIndex(cell_index)]));
+      correspondence_cost_cells()[ToFlatIndex(cell_index)])); //映射回[kMinCorrespondenceCost,kMaxCorrespondenceCost],并取反
 }
 
 proto::Grid2D ProbabilityGrid::ToProto() const {
@@ -91,14 +91,14 @@ proto::Grid2D ProbabilityGrid::ToProto() const {
 std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
   Eigen::Array2i offset;
   CellLimits cell_limits;
-  ComputeCroppedLimits(&offset, &cell_limits);
+  ComputeCroppedLimits(&offset, &cell_limits); // 获取包含所有已知栅格的子区域，offset为子区域的起点，cell_limits为从offset开始的矩形框
   const double resolution = limits().resolution();
   const Eigen::Vector2d max =
       limits().max() - resolution * Eigen::Vector2d(offset.y(), offset.x());
   std::unique_ptr<ProbabilityGrid> cropped_grid =
       absl::make_unique<ProbabilityGrid>(
           MapLimits(resolution, max, cell_limits), conversion_tables_);
-  for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) {
+  for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) { // 遍历所有栅格，拷贝占用概率
     if (!IsKnown(xy_index + offset)) continue;
     cropped_grid->SetProbability(xy_index, GetProbability(xy_index + offset));
   }

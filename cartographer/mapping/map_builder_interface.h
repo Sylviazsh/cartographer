@@ -51,8 +51,8 @@ class MapBuilderInterface {
   MapBuilderInterface() {}
   virtual ~MapBuilderInterface() {}
 
-  MapBuilderInterface(const MapBuilderInterface&) = delete;
-  MapBuilderInterface& operator=(const MapBuilderInterface&) = delete;
+  MapBuilderInterface(const MapBuilderInterface&) = delete; // 禁用拷贝构造函数
+  MapBuilderInterface& operator=(const MapBuilderInterface&) = delete; // 禁用赋值运算符
 
   // Creates a new trajectory builder and returns its index.
   virtual int AddTrajectoryBuilder(

@@ -50,9 +50,9 @@ class LocalTrajectoryBuilder2D {
   struct MatchingResult {
     common::Time time;
     transform::Rigid3d local_pose;
-    sensor::RangeData range_data_in_local;
+    sensor::RangeData range_data_in_local; // submap坐标系下的扫描数据
     // 'nullptr' if dropped by the motion filter.
-    std::unique_ptr<const InsertionResult> insertion_result;
+    std::unique_ptr<const InsertionResult> insertion_result; // 子图插入结果
   };
 
   explicit LocalTrajectoryBuilder2D(
@@ -60,7 +60,7 @@ class LocalTrajectoryBuilder2D {
       const std::vector<std::string>& expected_range_sensor_ids);
   ~LocalTrajectoryBuilder2D();
 
-  LocalTrajectoryBuilder2D(const LocalTrajectoryBuilder2D&) = delete;
+  LocalTrajectoryBuilder2D(const LocalTrajectoryBuilder2D&) = delete; // 屏蔽了拷贝构造函数和拷贝赋值运算符
   LocalTrajectoryBuilder2D& operator=(const LocalTrajectoryBuilder2D&) = delete;
 
   // Returns 'MatchingResult' when range data accumulation completed,
@@ -100,17 +100,17 @@ class LocalTrajectoryBuilder2D {
   void InitializeExtrapolator(common::Time time);
 
   const proto::LocalTrajectoryBuilderOptions2D options_;
-  ActiveSubmaps2D active_submaps_;
+  ActiveSubmaps2D active_submaps_; // 当前正在维护的子图
 
-  MotionFilter motion_filter_;
+  MotionFilter motion_filter_; // 运动滤波器，对位姿相关的数据进行降采样
   scan_matching::RealTimeCorrelativeScanMatcher2D
-      real_time_correlative_scan_matcher_; // 用相关分析方法，实时扫描匹配，
-  scan_matching::CeresScanMatcher2D ceres_scan_matcher_; // Ceres方法匹配。
+      real_time_correlative_scan_matcher_; // 实时相关性分析的扫描匹配器，算法"Real-Time Correlative Scan Matching"的实现
+  scan_matching::CeresScanMatcher2D ceres_scan_matcher_; // 使用Ceres库将扫描数据放置到地图中的扫描匹配器
 
-  std::unique_ptr<PoseExtrapolator> extrapolator_; // 轨迹推算器。融合IMU，里程计数据
+  std::unique_ptr<PoseExtrapolator> extrapolator_; // 位姿估计器。融合IMU，里程计数据等，用一段时间内的位姿数据估计线速度和角速度，进而预测运动
 
-  int num_accumulated_ = 0;
-  sensor::RangeData accumulated_range_data_;
+  int num_accumulated_ = 0; // 累积数据的数量
+  sensor::RangeData accumulated_range_data_; // 累积的扫描数据
 
   absl::optional<std::chrono::steady_clock::time_point> last_wall_time_;
   absl::optional<double> last_thread_cpu_time_seconds_;

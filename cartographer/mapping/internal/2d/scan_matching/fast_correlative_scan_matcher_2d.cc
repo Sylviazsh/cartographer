@@ -195,11 +195,18 @@ FastCorrelativeScanMatcher2D::FastCorrelativeScanMatcher2D(
 
 FastCorrelativeScanMatcher2D::~FastCorrelativeScanMatcher2D() {}
 
+/**
+ * @param initial_pose_estimate 初始位姿估计
+ * @param point_cloud 将要考察的路径节点下的激光点云数据
+ * @param min_score 搜索节点的最小得分，小于该得分就舍弃，score_threshold
+ * @return score 返回匹配度
+ * @return pose_estimate 返回位姿估计
+*/
 bool FastCorrelativeScanMatcher2D::Match(
     const transform::Rigid2d& initial_pose_estimate,
     const sensor::PointCloud& point_cloud, const float min_score, float* score,
     transform::Rigid2d* pose_estimate) const {
-  const SearchParameters search_parameters(options_.linear_search_window(),
+  const SearchParameters search_parameters(options_.linear_search_window(), // 搜索窗口以及分辨率
                                            options_.angular_search_window(),
                                            point_cloud, limits_.resolution());
   return MatchWithSearchParameters(search_parameters, initial_pose_estimate,
@@ -224,6 +231,15 @@ bool FastCorrelativeScanMatcher2D::MatchFullSubmap(
                                    min_score, score, pose_estimate);
 }
 
+/**
+ * @brief 深度优先的分支定界搜索算法
+ * @param search_parameters 窗口大小、分辨率
+ * @param initial_pose_estimate 初始位姿估计
+ * @param point_cloud 将要考察的路径节点下的激光点云数据
+ * @param min_score 搜索节点的最小得分，小于该得分就舍弃，score_threshold
+ * @return score 返回匹配度
+ * @return pose_estimate 返回位姿估计
+*/
 bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
     SearchParameters search_parameters,
     const transform::Rigid2d& initial_pose_estimate,
@@ -233,24 +249,24 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
   CHECK(pose_estimate != nullptr);
 
   const Eigen::Rotation2Dd initial_rotation = initial_pose_estimate.rotation();
-  const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud(
+  const sensor::PointCloud rotated_point_cloud = sensor::TransformPointCloud( // 将激光点云中的点都绕Z轴转动相应的角度得到rotated_point_cloud //? 为什么要绕z转
       point_cloud,
       transform::Rigid3f::Rotation(Eigen::AngleAxisf(
           initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
-  const std::vector<sensor::PointCloud> rotated_scans =
+  const std::vector<sensor::PointCloud> rotated_scans = // 获得搜索窗口下机器人朝向各个方向角时的点云数据
       GenerateRotatedScans(rotated_point_cloud, search_parameters);
   const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans(
       limits_, rotated_scans,
       Eigen::Translation2f(initial_pose_estimate.translation().x(),
                            initial_pose_estimate.translation().y()));
-  search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits());
+  search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits()); // 获得搜索窗口下机器人朝向各个方向角时的点云数据
 
-  const std::vector<Candidate2D> lowest_resolution_candidates =
-      ComputeLowestResolutionCandidates(discrete_scans, search_parameters);
-  const Candidate2D best_candidate = BranchAndBound(
+  const std::vector<Candidate2D> lowest_resolution_candidates = // 对搜索空间进行第一次分割，得到初始子空间节点集合{C0}
+      ComputeLowestResolutionCandidates(discrete_scans, search_parameters); // 该函数在最低分辨率的栅格地图上查表得到各个搜索节点c∈{C0}的上界，并降序排列
+  const Candidate2D best_candidate = BranchAndBound( // 分支定界搜索
       discrete_scans, search_parameters, lowest_resolution_candidates,
       precomputation_grid_stack_->max_depth(), min_score);
-  if (best_candidate.score > min_score) {
+  if (best_candidate.score > min_score) { // 匹配成功
     *score = best_candidate.score;
     *pose_estimate = transform::Rigid2d(
         {initial_pose_estimate.translation().x() + best_candidate.x,
@@ -263,22 +279,22 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
 
 std::vector<Candidate2D>
 FastCorrelativeScanMatcher2D::ComputeLowestResolutionCandidates(
-    const std::vector<DiscreteScan2D>& discrete_scans,
+    const std::vector<DiscreteScan2D>& discrete_scans, // 离散化之后的各搜索方向上的点云数据
     const SearchParameters& search_parameters) const {
-  std::vector<Candidate2D> lowest_resolution_candidates =
+  std::vector<Candidate2D> lowest_resolution_candidates = // 对搜索空间进行初始分割
       GenerateLowestResolutionCandidates(search_parameters);
-  ScoreCandidates(
+  ScoreCandidates( // 计算各个候选点的评分并排序
       precomputation_grid_stack_->Get(precomputation_grid_stack_->max_depth()),
       discrete_scans, search_parameters, &lowest_resolution_candidates);
   return lowest_resolution_candidates;
 }
 
 std::vector<Candidate2D>
-FastCorrelativeScanMatcher2D::GenerateLowestResolutionCandidates(
+FastCorrelativeScanMatcher2D::GenerateLowestResolutionCandidates( // 根据搜索配置完成初始分割
     const SearchParameters& search_parameters) const {
-  const int linear_step_size = 1 << precomputation_grid_stack_->max_depth();
-  int num_candidates = 0;
-  for (int scan_index = 0; scan_index != search_parameters.num_scans;
+  const int linear_step_size = 1 << precomputation_grid_stack_->max_depth(); // 根据预算图的金字塔高度计算初始分割的粒度2^h0
+  int num_candidates = 0; // 搜索空间初始分割的子空间数量
+  for (int scan_index = 0; scan_index != search_parameters.num_scans; // 遍历所有搜索方向，累计各方向下空间的分割数量
        ++scan_index) {
     const int num_lowest_resolution_linear_x_candidates =
         (search_parameters.linear_bounds[scan_index].max_x -
@@ -311,6 +327,12 @@ FastCorrelativeScanMatcher2D::GenerateLowestResolutionCandidates(
   return candidates;
 }
 
+/**
+ * @param precomputation_grid 将要查询的预算图
+ * @param discrete_scans 离散化的各搜索角度下的激光点云
+ * @param search_parameters 搜索配置
+ * @param candidates 候选点集合,将在本函数中计算得分并排序
+*/
 void FastCorrelativeScanMatcher2D::ScoreCandidates(
     const PrecomputationGrid2D& precomputation_grid,
     const std::vector<DiscreteScan2D>& discrete_scans,
@@ -332,22 +354,23 @@ void FastCorrelativeScanMatcher2D::ScoreCandidates(
             std::greater<Candidate2D>());
 }
 
-Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
+Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound( // 分支定界
     const std::vector<DiscreteScan2D>& discrete_scans,
     const SearchParameters& search_parameters,
     const std::vector<Candidate2D>& candidates, const int candidate_depth,
     float min_score) const {
-  if (candidate_depth == 0) {
+  if (candidate_depth == 0) { // 递归终止的条件
     // Return the best candidate.
     return *candidates.begin();
   }
 
-  Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters); // 讨论分层并计算目标函数值
-  best_high_resolution_candidate.score = min_score; // 更新best score
-  for (const Candidate2D& candidate : candidates) { // 在分支定界中for循环用来分层
+  Candidate2D best_high_resolution_candidate(0, 0, 0, search_parameters); // 创建一个临时的候选点对象
+  best_high_resolution_candidate.score = min_score; // 初始化
+  for (const Candidate2D& candidate : candidates) {
     if (candidate.score <= min_score) { // 若该值不优，则减枝
       break;
     }
+    // 对其进行分支
     std::vector<Candidate2D> higher_resolution_candidates;
     const int half_width = 1 << (candidate_depth - 1);
     for (int x_offset : {0, half_width}) {
@@ -365,7 +388,7 @@ Candidate2D FastCorrelativeScanMatcher2D::BranchAndBound(
             candidate.y_index_offset + y_offset, search_parameters);
       }
     }
-    ScoreCandidates(precomputation_grid_stack_->Get(candidate_depth - 1),
+    ScoreCandidates(precomputation_grid_stack_->Get(candidate_depth - 1), // 对新扩展的候选点定界并排序
                     discrete_scans, search_parameters,
                     &higher_resolution_candidates);
     best_high_resolution_candidate = std::max(

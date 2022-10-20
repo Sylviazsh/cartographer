@@ -66,7 +66,7 @@ LocalTrajectoryBuilder2D::TransformToGravityAlignedFrameAndFilter( // 将RangeDa
  * @brief 扫描匹配
  * @param time 时间
  * @param pose_prediction 由PoseExtrapolator预测的初始位姿
- * @param filtered_gravity_aligned_point_cloud 经过重力aligned的RangeData
+ * @param filtered_gravity_aligned_point_cloud 经过重力修正之后的扫描数据
  * @return 采用Ceres Scan Matcher计算出，该帧传感器数据的最优pose
 */
 std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
@@ -75,7 +75,7 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   if (active_submaps_.submaps().empty()) {
     return absl::make_unique<transform::Rigid2d>(pose_prediction);
   }
-  std::shared_ptr<const Submap2D> matching_submap =
+  std::shared_ptr<const Submap2D> matching_submap = // 用于扫描匹配的旧图
       active_submaps_.submaps().front();
   // The online correlative scan matcher will refine the initial estimate for
   // the Ceres scan matcher.
@@ -109,11 +109,16 @@ std::unique_ptr<transform::Rigid2d> LocalTrajectoryBuilder2D::ScanMatch(
   return pose_observation; // 返回优化后的pose
 }
 
+/**
+ * @brief Local SLAM
+ * @param sensor_id 激光雷达的索引
+ * @param unsynchronized_data 未经时间同步的扫描数据
+*/
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddRangeData(
     const std::string& sensor_id,
     const sensor::TimedPointCloudData& unsynchronized_data) {
-  auto synchronized_data =
+  auto synchronized_data = // 时间同步后的扫描数据
       range_data_collator_.AddRangeData(sensor_id, unsynchronized_data);
   if (synchronized_data.ranges.empty()) {
     LOG(INFO) << "Range data collator filling buffer.";
@@ -122,7 +127,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
 
   const common::Time& time = synchronized_data.time;
   // Initialize extrapolator now if we do not ever use an IMU.
-  if (!options_.use_imu_data()) {
+  if (!options_.use_imu_data()) { // 如果不使用IMU估计位姿，就根据扫描匹配的结果估计位姿
     InitializeExtrapolator(time);
   }
 
@@ -162,7 +167,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
         extrapolator_->ExtrapolatePose(time_point).cast<float>());
   }
 
-  if (num_accumulated_ == 0) {
+  if (num_accumulated_ == 0) { // 如果还没有累积过扫描数据，就重置对象accumulated_range_data_
     // 'accumulated_range_data_.origin' is uninitialized until the last
     // accumulation.
     accumulated_range_data_ = sensor::RangeData{{}, {}, {}};
@@ -216,6 +221,13 @@ LocalTrajectoryBuilder2D::AddRangeData(
   return nullptr;
 }
 
+/**
+ * @brief
+ * @param time 当前同步时间
+ * @param gravity_aligned_range_data 经过重力修正后的传感器数据
+ * @param gravity_alignment 重力方向
+ * @param sensor_duration
+*/
 std::unique_ptr<LocalTrajectoryBuilder2D::MatchingResult>
 LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
     const common::Time time,
@@ -284,13 +296,21 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
                      std::move(insertion_result)});
 }
 
+/**
+ * @brief 将传感器数据插入当前正在维护的子图中
+ * @param time
+ * @param range_data_in_local 在优化之后的位姿估计下观测到的hit点和miss点云数据
+ * @param filtered_gravity_aligned_point_cloud 扫描匹配之前执行了重力修正的扫描数据
+ * @param pose_estimate 优化之后的位姿估计
+ * @param gravity_alignment 重力方向
+*/
 std::unique_ptr<LocalTrajectoryBuilder2D::InsertionResult>
 LocalTrajectoryBuilder2D::InsertIntoSubmap(
     const common::Time time, const sensor::RangeData& range_data_in_local,
     const sensor::PointCloud& filtered_gravity_aligned_point_cloud,
     const transform::Rigid3d& pose_estimate,
     const Eigen::Quaterniond& gravity_alignment) {
-  if (motion_filter_.IsSimilar(time, pose_estimate)) { // 如果被MotionFilter滤掉
+  if (motion_filter_.IsSimilar(time, pose_estimate)) { // 通过运动滤波器来判定当前是否发生了明显的运动，若未发生则直接返回退出，减少计算量
     return nullptr;
   }
   std::vector<std::shared_ptr<const Submap2D>> insertion_submaps =
@@ -315,7 +335,7 @@ void LocalTrajectoryBuilder2D::AddImuData(const sensor::ImuData& imu_data) {
 
 void LocalTrajectoryBuilder2D::AddOdometryData(
     const sensor::OdometryData& odometry_data) {
-  if (extrapolator_ == nullptr) {
+  if (extrapolator_ == nullptr) { // 位姿估计器未完成初始化工作
     // Until we've initialized the extrapolator we cannot add odometry data.
     LOG(INFO) << "Extrapolator not yet initialized.";
     return;

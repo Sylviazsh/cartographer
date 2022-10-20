@@ -117,7 +117,7 @@ class Grid2D : public GridInterface {
 
  private:
   MapLimits limits_;
-  std::vector<uint16> correspondence_cost_cells_;
+  std::vector<uint16> correspondence_cost_cells_; // 记录各个栅格单元的空闲概率，0表示对应栅格概率未知，[1, 32767]表示空闲概率
   float min_correspondence_cost_;
   float max_correspondence_cost_;
   std::vector<int> update_indices_;

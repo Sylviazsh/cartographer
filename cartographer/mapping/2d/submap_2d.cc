@@ -134,7 +134,7 @@ void Submap2D::ToResponseProto( // 从proto流中获取Submap2D
   grid()->DrawToSubmapTexture(texture, local_pose());
 }
 
-void Submap2D::InsertRangeData(
+void Submap2D::InsertRangeData( // 将激光的扫描数据插入到grid_对象
     const sensor::RangeData& range_data,
     const RangeDataInserterInterface* range_data_inserter) {
   CHECK(grid_); // 检查是否栅格化

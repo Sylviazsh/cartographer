@@ -97,7 +97,7 @@ class ActiveSubmaps2D {
 
   const proto::SubmapsOptions2D options_;
   std::vector<std::shared_ptr<Submap2D>> submaps_;
-  std::unique_ptr<RangeDataInserterInterface> range_data_inserter_;
+  std::unique_ptr<RangeDataInserterInterface> range_data_inserter_; // 用于将扫描数据插入子图的工具，可称为插入器
   ValueConversionTables conversion_tables_;
 };
 
