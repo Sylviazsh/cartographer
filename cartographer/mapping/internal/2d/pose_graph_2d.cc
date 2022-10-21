@@ -41,7 +41,7 @@
 namespace cartographer {
 namespace mapping {
 
-static auto* kWorkQueueDelayMetric = metrics::Gauge::Null();
+static auto* kWorkQueueDelayMetric = metrics::Gauge::Null(); //?
 static auto* kWorkQueueSizeMetric = metrics::Gauge::Null();
 static auto* kConstraintsSameTrajectoryMetric = metrics::Gauge::Null();
 static auto* kConstraintsDifferentTrajectoryMetric = metrics::Gauge::Null();

@@ -81,7 +81,7 @@ class PoseGraph2D : public PoseGraph {
       std::shared_ptr<const TrajectoryNode::Data> constant_data,
       int trajectory_id,
       const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps)
-      LOCKS_EXCLUDED(mutex_);
+      LOCKS_EXCLUDED(mutex_); //! 为了防止死锁,声明调用者绝对不能拥有监护权。很多互斥锁的实现是不允许重入的，因此如果一个函数二次申请一个互斥锁，会引起死锁
 
   void AddImuData(int trajectory_id, const sensor::ImuData& imu_data) override
       LOCKS_EXCLUDED(mutex_);
@@ -99,7 +99,7 @@ class PoseGraph2D : public PoseGraph {
   void DeleteTrajectory(int trajectory_id) override;
   void FinishTrajectory(int trajectory_id) override;
   bool IsTrajectoryFinished(int trajectory_id) const override
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(mutex_); //! 表明调用线程必须独享给定的监护权
   void FreezeTrajectory(int trajectory_id) override;
   bool IsTrajectoryFrozen(int trajectory_id) const override
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);

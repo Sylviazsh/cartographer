@@ -76,7 +76,7 @@ void MaybeAddPureLocalizationTrimmer(
 
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
-  CHECK(options.use_trajectory_builder_2d() ^
+  CHECK(options.use_trajectory_builder_2d() ^ // 2d 3d必有其一
         options.use_trajectory_builder_3d());
   if (options.use_trajectory_builder_2d()) {
     pose_graph_ = absl::make_unique<PoseGraph2D>(

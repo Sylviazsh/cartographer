@@ -65,7 +65,7 @@ class MapBuilder : public MapBuilderInterface {
                                        const bool load_frozen_state) override;
 
   mapping::PoseGraphInterface *pose_graph() override {
-    return pose_graph_.get();
+    return pose_graph_.get(); // get是获取指针，不用get直接返回pose_graph_是返回一个条件判断，若有指向一个对象，则为true
   }
 
   int num_trajectory_builders() const override {
