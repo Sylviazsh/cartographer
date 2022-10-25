@@ -68,7 +68,7 @@ class TrajectoryBuilderStub : public mapping::TrajectoryBuilderInterface {
   std::shared_ptr<::grpc::Channel> client_channel_;
   const int trajectory_id_;
   const std::string client_id_;
-  std::unique_ptr<async_grpc::Client<handlers::AddRangefinderDataSignature>>
+  std::unique_ptr<async_grpc::Client<handlers::AddRangefinderDataSignature>> // grpc：google远程过程调用 [参考:https://www.jianshu.com/p/7d6853140e13][参考:https://blog.csdn.net/g6u8w7p06dco99fq3/article/details/98333153]
       add_rangefinder_client_;
   std::unique_ptr<async_grpc::Client<handlers::AddImuDataSignature>>
       add_imu_client_;

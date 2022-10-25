@@ -94,7 +94,7 @@ PoseGraphStub::GetTrajectoryNodes() const {
 mapping::MapById<mapping::NodeId, mapping::TrajectoryNodePose>
 PoseGraphStub::GetTrajectoryNodePoses() const {
   google::protobuf::Empty request;
-  async_grpc::Client<handlers::GetTrajectoryNodePosesSignature> client(
+  async_grpc::Client<handlers::GetTrajectoryNodePosesSignature> client( //?
       client_channel_);
   CHECK(client.Write(request));
   mapping::MapById<mapping::NodeId, mapping::TrajectoryNodePose> node_poses;

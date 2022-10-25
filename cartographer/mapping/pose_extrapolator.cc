@@ -179,7 +179,7 @@ void PoseExtrapolator::UpdateVelocitiesFromPoses() {
       queue_delta;
 }
 
-void PoseExtrapolator::TrimImuData() { // 删去队列中无用的IMU数据，trim：修剪
+void PoseExtrapolator::TrimImuData() { // 删去队列中无用的IMU数据，trim：修剪。//? 起到数据同步的作用？
   while (imu_data_.size() > 1 && !timed_pose_queue_.empty() &&
          imu_data_[1].time <= timed_pose_queue_.back().time) {
     imu_data_.pop_front();

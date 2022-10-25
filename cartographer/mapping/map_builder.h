@@ -86,11 +86,11 @@ class MapBuilder : public MapBuilderInterface {
   const proto::MapBuilderOptions options_;
   common::ThreadPool thread_pool_;
 
-  std::unique_ptr<PoseGraph> pose_graph_;
+  std::unique_ptr<PoseGraph> pose_graph_; // 用于在后台完成闭环检测，进行全局的地图优化
 
-  std::unique_ptr<sensor::CollatorInterface> sensor_collator_;
+  std::unique_ptr<sensor::CollatorInterface> sensor_collator_; // 用于管理和收集传感器数据
   std::vector<std::unique_ptr<mapping::TrajectoryBuilderInterface>>
-      trajectory_builders_;
+      trajectory_builders_; // 用于在前台构建子图。在系统运行的过程中，可能有不止一条轨迹，针对每一条轨迹Cartographer都建立了一个轨迹跟踪器
   std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>
       all_trajectory_builder_options_;
 };

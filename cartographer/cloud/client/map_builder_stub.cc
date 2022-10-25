@@ -123,7 +123,7 @@ std::string MapBuilderStub::SubmapToProto(
     mapping::proto::SubmapQuery::Response* submap_query_response) {
   proto::GetSubmapRequest request;
   submap_id.ToProto(request.mutable_submap_id());
-  async_grpc::Client<handlers::GetSubmapSignature> client(client_channel_);
+  async_grpc::Client<handlers::GetSubmapSignature> client(client_channel_); //?
   CHECK(client.Write(request));
   submap_query_response->CopyFrom(client.response().submap_query_response());
   return client.response().error_msg();
