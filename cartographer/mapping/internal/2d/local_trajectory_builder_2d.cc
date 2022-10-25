@@ -26,7 +26,7 @@
 namespace cartographer {
 namespace mapping {
 
-static auto* kLocalSlamLatencyMetric = metrics::Gauge::Null();
+static auto* kLocalSlamLatencyMetric = metrics::Gauge::Null(); // metrics：API性能监控[参考:https://blog.csdn.net/xujiangdong1992/article/details/80872718]
 static auto* kLocalSlamRealTimeRatio = metrics::Gauge::Null();
 static auto* kLocalSlamCpuRealTimeRatio = metrics::Gauge::Null();
 static auto* kRealTimeCorrelativeScanMatcherScoreMetric =
@@ -177,7 +177,7 @@ LocalTrajectoryBuilder2D::AddRangeData(
   // maximum range into misses.
   for (size_t i = 0; i < synchronized_data.ranges.size(); ++i) {
     const sensor::TimedRangefinderPoint& hit = // 获取第i帧点云
-        synchronized_data.ranges[i].point_time;
+        synchronized_data.ranges[i].point_time; // position and time
     const Eigen::Vector3f origin_in_local = // 第i帧点云的原点
         range_data_poses[i] *
         synchronized_data.origins.at(synchronized_data.ranges[i].origin_index);

@@ -134,7 +134,7 @@ int MapBuilder::AddTrajectoryBuilder(
           trajectory_options.trajectory_builder_2d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
-    DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get()));
+    DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get())); // 将pose_graph_对象强制转换为PoseGraph2D，并检查数据类型是否正确
     trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,

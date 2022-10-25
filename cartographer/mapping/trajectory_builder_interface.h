@@ -48,7 +48,7 @@ class LocalSlamResultData;
 class TrajectoryBuilderInterface {
  public:
   struct InsertionResult { // 插入Local Slam的一个节点（关键帧）的数据结构
-    NodeId node_id;
+    NodeId node_id; // trajectory_id 和 node_index
     std::shared_ptr<const TrajectoryNode::Data> constant_data; // 经过处理的一帧传感器数据
     std::vector<std::shared_ptr<const Submap>> insertion_submaps; // 子图列表
   };
@@ -56,7 +56,7 @@ class TrajectoryBuilderInterface {
   // A callback which is called after local SLAM processes an accumulated
   // 'sensor::RangeData'. If the data was inserted into a submap, reports the
   // assigned 'NodeId', otherwise 'nullptr' if the data was filtered out.
-  using LocalSlamResultCallback =
+  using LocalSlamResultCallback = // 定义回调函数的类型
       std::function<void(int /* trajectory ID */, common::Time,
                          transform::Rigid3d /* local pose estimate */,
                          sensor::RangeData /* in local frame */,
