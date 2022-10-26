@@ -90,8 +90,8 @@ class MapLimits {
   }
 
  private:
-  double resolution_;
-  Eigen::Vector2d max_;
+  double resolution_; // 地图的分辨率，即一个栅格单元对应的地图尺寸
+  Eigen::Vector2d max_; // 地图的x和y方向上的最大值
   CellLimits cell_limits_; // x和y方向上的栅格数量
 };
 

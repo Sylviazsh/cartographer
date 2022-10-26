@@ -52,8 +52,8 @@ void GrowAsNeeded(const sensor::RangeData& range_data,
 /**
  * @brief 获得一次扫描测量过程中相关栅格的观测事件;完成查表更新
  * @param range_data 将要处理的扫描数据
- * @param hit_table 查找表
- * @param miss_table 查找表
+ * @param hit_table 更新栅格单元的占用概率时需要的查找表
+ * @param miss_table 更新栅格单元的占用概率时需要的查找表
  * @param insert_free_space 配置项，是否更新发生miss事件的栅格单元的占用概率
  * @param probability_grid 将要更新的占用栅格
  */
@@ -63,7 +63,7 @@ void CastRays(const sensor::RangeData& range_data,
               const bool insert_free_space, ProbabilityGrid* probability_grid) {
   GrowAsNeeded(range_data, probability_grid); // 适当调整栅格地图的作用范围，让它能够覆盖雷达的所有扫描数据
 
-  // 构建一个分辨率更高的Maplimits对象构建一个分辨率更高的Maplimits对象，提高RayCasting的精度
+  // 构建一个分辨率更高的Maplimits对象，提高RayCasting的精度
   const MapLimits& limits = probability_grid->limits();
   const double superscaled_resolution = limits.resolution() / kSubpixelScale; // 把当前的分辨率划分成了kSubpixelScale份
   const MapLimits superscaled_limits( // 根据超分辨率像素生成一个新的MapLimits
@@ -77,10 +77,10 @@ void CastRays(const sensor::RangeData& range_data,
   ends.reserve(range_data.returns.size()); // 根据returns集合的大小，给向量ends预分配一块存储区
   for (const sensor::RangefinderPoint& hit : range_data.returns) {
     ends.push_back(superscaled_limits.GetCellIndex(hit.position.head<2>()));
-    probability_grid->ApplyLookupTable(ends.back() / kSubpixelScale, hit_table);
+    probability_grid->ApplyLookupTable(ends.back() / kSubpixelScale, hit_table); // 第一个参数将精细栅格下hit点索引重新转换成原始栅格分辨率下的索引
   }
 
-  if (!insert_free_space) {
+  if (!insert_free_space) { // 配置不需要处理miss事件
     return;
   }
 

@@ -116,14 +116,14 @@ class Grid2D : public GridInterface {
   }
 
  private:
-  MapLimits limits_;
+  MapLimits limits_; // 地图的范围
   std::vector<uint16> correspondence_cost_cells_; // 记录各个栅格单元的空闲概率，0表示对应栅格概率未知，[1, 32767]表示空闲概率
   float min_correspondence_cost_;
   float max_correspondence_cost_;
-  std::vector<int> update_indices_;
+  std::vector<int> update_indices_; // 记录更新过的栅格单元的存储索引
 
   // Bounding box of known cells to efficiently compute cropping limits.
-  Eigen::AlignedBox2i known_cells_box_;
+  Eigen::AlignedBox2i known_cells_box_; // 记录哪些栅格单元中有值
   const std::vector<float>* value_to_correspondence_cost_table_;
 };
 

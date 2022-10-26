@@ -106,6 +106,7 @@ void PoseExtrapolator::AddOdometryData(
   }
   // TODO(whess): Improve by using more than just the last two odometry poses.
   // Compute extrapolation in the tracking frame.
+  // 里程计坐标系->基准坐标系
   const sensor::OdometryData& odometry_data_oldest = odometry_data_.front();
   const sensor::OdometryData& odometry_data_newest = odometry_data_.back();
   const double odometry_time_delta =

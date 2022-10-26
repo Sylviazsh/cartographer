@@ -61,8 +61,8 @@ inline float CorrespondenceCostToProbability(const float correspondence_cost) {
   return 1.f - correspondence_cost;
 }
 
-constexpr float kMinProbability = 0.1f;
-constexpr float kMaxProbability = 1.f - kMinProbability;
+constexpr float kMinProbability = 0.1f; // 每个栅格的最小值是0.1
+constexpr float kMaxProbability = 1.f - kMinProbability; // 最大值是0.9
 constexpr float kMinCorrespondenceCost = 1.f - kMaxProbability;
 constexpr float kMaxCorrespondenceCost = 1.f - kMinProbability;
 
@@ -79,7 +79,7 @@ inline float ClampCorrespondenceCost(const float correspondence_cost) {
 
 constexpr uint16 kUnknownProbabilityValue = 0;
 constexpr uint16 kUnknownCorrespondenceValue = kUnknownProbabilityValue;
-constexpr uint16 kUpdateMarker = 1u << 15;
+constexpr uint16 kUpdateMarker = 1u << 15; // 2^15=32768
 
 // Converts a correspondence_cost to a uint16 in the [1, 32767] range.
 inline uint16 CorrespondenceCostToValue(const float correspondence_cost) {

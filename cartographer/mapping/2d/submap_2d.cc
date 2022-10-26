@@ -164,7 +164,7 @@ std::vector<std::shared_ptr<const Submap2D>> ActiveSubmaps2D::InsertRangeData(
       submaps_.back()->num_range_data() == options_.num_range_data()) { // 如果插入的RangeData达到一定数量，则重新添加一个submap
     AddSubmap(range_data.origin.head<2>());
   }
-  for (auto& submap : submaps_) {
+  for (auto& submap : submaps_) { // 将数据同时插入新图和旧图
     submap->InsertRangeData(range_data, range_data_inserter_.get());
   }
   if (submaps_.front()->num_range_data() == 2 * options_.num_range_data()) { //如果插入的RangeData达到一定数量，则submap结束
@@ -180,7 +180,7 @@ ActiveSubmaps2D::CreateRangeDataInserter() {
       return absl::make_unique<ProbabilityGridRangeDataInserter2D>(
           options_.range_data_inserter_options()
               .probability_grid_range_data_inserter_options_2d());
-    case proto::RangeDataInserterOptions::TSDF_INSERTER_2D:
+    case proto::RangeDataInserterOptions::TSDF_INSERTER_2D: // TSDF算法[参考:https://blog.csdn.net/zfjBIT/article/details/104648505]
       return absl::make_unique<TSDFRangeDataInserter2D>(
           options_.range_data_inserter_options()
               .tsdf_range_data_inserter_options_2d());
@@ -197,7 +197,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
     case proto::GridOptions2D::PROBABILITY_GRID:
       return absl::make_unique<ProbabilityGrid>(
           MapLimits(resolution,
-                    origin.cast<double>() + 0.5 * kInitialSubmapSize *
+                    origin.cast<double>() + 0.5 * kInitialSubmapSize * // max
                                                 resolution *
                                                 Eigen::Vector2d::Ones(),
                     CellLimits(kInitialSubmapSize, kInitialSubmapSize)),
@@ -222,7 +222,7 @@ std::unique_ptr<GridInterface> ActiveSubmaps2D::CreateGrid(
 }
 
 void ActiveSubmaps2D::AddSubmap(const Eigen::Vector2f& origin) {
-  if (submaps_.size() >= 2) {
+  if (submaps_.size() >= 2) { // 如果有2个子图，则需要进行新旧图切换
     // This will crop the finished Submap before inserting a new Submap to
     // reduce peak memory usage a bit.
     CHECK(submaps_.front()->insertion_finished());

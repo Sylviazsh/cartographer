@@ -30,9 +30,9 @@ namespace sensor {
 // was detected, and were inserted at a configured distance. It is assumed that
 // between the 'origin' and 'misses' is free space.
 struct RangeData {
-  Eigen::Vector3f origin;
-  PointCloud returns;
-  PointCloud misses;
+  Eigen::Vector3f origin; // 当次扫描测量时激光雷达的位置
+  PointCloud returns; // 扫描到的hit点，即在该点上扫描到了障碍物
+  PointCloud misses; //  miss点所在的位置上并没有检测到障碍物，以传感器的最远有效距离记录下坐标
 };
 
 RangeData TransformRangeData(const RangeData& range_data,

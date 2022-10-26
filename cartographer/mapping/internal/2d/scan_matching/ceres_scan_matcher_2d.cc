@@ -55,7 +55,7 @@ CeresScanMatcher2D::CeresScanMatcher2D(
     : options_(options),
       ceres_solver_options_(
           common::CreateCeresSolverOptions(options.ceres_solver_options())) {
-  ceres_solver_options_.linear_solver_type = ceres::DENSE_QR;
+  ceres_solver_options_.linear_solver_type = ceres::DENSE_QR; // 用于小规模最小二乘问题的求解 [参考:https://zhuanlan.zhihu.com/p/457824993]
 }
 
 CeresScanMatcher2D::~CeresScanMatcher2D() {}
@@ -82,11 +82,11 @@ void CeresScanMatcher2D::Match(const Eigen::Vector2d& target_translation,
   switch (grid.GetGridType()) {
     case GridType::PROBABILITY_GRID:
       problem.AddResidualBlock( // 残差来源1: 占用栅格与扫描数据的匹配度
-          CreateOccupiedSpaceCostFunction2D(
+          CreateOccupiedSpaceCostFunction2D( // cost function
               options_.occupied_space_weight() /
                   std::sqrt(static_cast<double>(point_cloud.size())),
               point_cloud, grid),
-          nullptr /* loss function */, ceres_pose_estimate);
+          nullptr /* loss function */, ceres_pose_estimate); //? 不需要损失函数吗？
       break;
     case GridType::TSDF:
       problem.AddResidualBlock(

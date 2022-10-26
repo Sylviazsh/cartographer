@@ -86,7 +86,7 @@ std::vector<uint16> ComputeLookupTableToApplyOdds(const float odds) {
   return result;
 }
 
-std::vector<uint16> ComputeLookupTableToApplyCorrespondenceCostOdds(
+std::vector<uint16> ComputeLookupTableToApplyCorrespondenceCostOdds( //? 看不懂
     float odds) {
   std::vector<uint16> result;
   result.reserve(kValueCount);

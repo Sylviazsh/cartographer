@@ -42,9 +42,10 @@ void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
                                      const float probability) {
   uint16& cell =
       (*mutable_correspondence_cost_cells())[ToFlatIndex(cell_index)];
-  CHECK_EQ(cell, kUnknownProbabilityValue); // 检查栅格单元是否未知
+  CHECK_EQ(cell, kUnknownProbabilityValue); // 检查栅格单元是否未知，即等于0
   cell = // 根据索引cell_index获取目标栅格单元
       CorrespondenceCostToValue(ProbabilityToCorrespondenceCost(probability)); // 对输入概率值取反，再映射到[1,32767]。输入描述栅格单元的占用概率，存储栅格单元的空闲概率
+  // Probability是指栅格被占用的概率，CorrespondenceCost则是栅格空闲的概率
   mutable_known_cells_box()->extend(cell_index.matrix());
 }
 
@@ -55,7 +56,12 @@ void ProbabilityGrid::SetProbability(const Eigen::Array2i& cell_index,
 //
 // If this is the first call to ApplyOdds() for the specified cell, its value
 // will be set to probability corresponding to 'odds'.
-bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index, // 通过查表来更新栅格单元的占用概率
+/**
+ * @brief 通过查表来更新栅格单元的占用概率
+ * @param cell_index 将要更新的栅格单元索引
+ * @param table 更新过程中将要查的表
+*/
+bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index,
                                        const std::vector<uint16>& table) {
   DCHECK_EQ(table.size(), kUpdateMarker); // 检查查找表的大小
   const int flat_index = ToFlatIndex(cell_index); // 栅格单元的存储索引
@@ -63,8 +69,8 @@ bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index, // 通�
   if (*cell >= kUpdateMarker) { // 确保该值不会超出查找表的数组边界
     return false;
   }
-  mutable_update_indices()->push_back(flat_index);
-  *cell = table[*cell]; // 通过查表更新栅格单元
+  mutable_update_indices()->push_back(flat_index); // 记录当前更新的栅格单元的存储索引flat_index
+  *cell = table[*cell]; // 通过查表更新栅格单元 //? 将栅格中内容更新成什么呢？好奇怪
   DCHECK_GE(*cell, kUpdateMarker);
   mutable_known_cells_box()->extend(cell_index.matrix()); // 将cell_index所对应的栅格的占用概率标记为已知
   return true;
@@ -100,7 +106,7 @@ std::unique_ptr<Grid2D> ProbabilityGrid::ComputeCroppedGrid() const {
           MapLimits(resolution, max, cell_limits), conversion_tables_);
   for (const Eigen::Array2i& xy_index : XYIndexRangeIterator(cell_limits)) { // 遍历所有栅格，拷贝占用概率
     if (!IsKnown(xy_index + offset)) continue;
-    cropped_grid->SetProbability(xy_index, GetProbability(xy_index + offset));
+    cropped_grid->SetProbability(xy_index, GetProbability(xy_index + offset)); //? 为什么要映射来映射去的
   }
 
   return std::unique_ptr<Grid2D>(cropped_grid.release());
