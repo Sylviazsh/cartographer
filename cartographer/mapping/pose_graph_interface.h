@@ -33,10 +33,10 @@ class PoseGraphInterface {
   // A "constraint" as in the paper by Konolige, Kurt, et al. "Efficient sparse
   // pose adjustment for 2d mapping." Intelligent Robots and Systems (IROS),
   // 2010 IEEE/RSJ International Conference on (pp. 22--29). IEEE, 2010.
-  struct Constraint {
+  struct Constraint { // 节点j相对于子图i的约束。一次激光扫描插入子图中，插入结果是一个节点
     struct Pose {
-      transform::Rigid3d zbar_ij; // 相对位姿
-      double translation_weight;
+      transform::Rigid3d zbar_ij; // 相对位姿εij
+      double translation_weight; // 权重用于描述不确定度，对应协方差矩阵Σij
       double rotation_weight;
     };
 
@@ -49,7 +49,7 @@ class PoseGraphInterface {
     // Differentiates between intra-submap (where node 'j' was inserted into
     // submap 'i') and inter-submap constraints (where node 'j' was not inserted
     // into submap 'i').
-    // 每一对node和submap，都分为两种情况：节点j有插入该submap中(INTRA_SUBMAP)和没有插入该submap中(INTER_SUBMAP)。
+    // 子图内约束(INTRA_SUBMAP)和子图间(INTER_SUBMAP)约束
     enum Tag { INTRA_SUBMAP, INTER_SUBMAP } tag; 
   };
 

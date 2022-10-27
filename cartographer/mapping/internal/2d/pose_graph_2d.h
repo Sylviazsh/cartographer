@@ -241,11 +241,11 @@ class PoseGraph2D : public PoseGraph {
   const proto::PoseGraphOptions options_;
   GlobalSlamOptimizationCallback global_slam_optimization_callback_; // 完成全局优化后的回调函数
   mutable absl::Mutex mutex_;
-  absl::Mutex work_queue_mutex_; // 一个智能指针形式的工作队列，用于记录将要完成的任务
+  absl::Mutex work_queue_mutex_;
 
   // If it exists, further work items must be added to this queue, and will be
   // considered later.
-  std::unique_ptr<WorkQueue> work_queue_ GUARDED_BY(work_queue_mutex_);
+  std::unique_ptr<WorkQueue> work_queue_ GUARDED_BY(work_queue_mutex_); // 一个智能指针形式的工作队列，用于记录将要完成的任务
 
   // We globally localize a fraction of the nodes from each trajectory.
   absl::flat_hash_map<int, std::unique_ptr<common::FixedRatioSampler>>

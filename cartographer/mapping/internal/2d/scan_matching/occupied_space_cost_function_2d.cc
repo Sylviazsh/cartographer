@@ -69,7 +69,7 @@ class OccupiedSpaceCostFunction2D {
   }
 
  private:
-  static constexpr int kPadding = INT_MAX / 4;
+  static constexpr int kPadding = INT_MAX / 4; // 2147483647 / 4 = 536870911
   class GridArrayAdapter {
    public:
     enum { DATA_DIMENSION = 1 };
