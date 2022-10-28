@@ -152,7 +152,7 @@ NodeId PoseGraph2D::AppendNode(
 }
 
 /**
- * @brief 添加点云数据
+ * @brief 将Local SLAM更新结果喂给后端
  * @param constant_data 更新子图时的点云信息以及相对位姿
  * @param trajectory_id 轨迹索引
  * @param insertion_submaps 更新的子图
@@ -337,11 +337,11 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
         node_id.trajectory_id, constant_data->time, insertion_submaps);
     CHECK_EQ(submap_ids.size(), insertion_submaps.size());
     const SubmapId matching_id = submap_ids.front(); // 以旧图为参考
-    const transform::Rigid2d local_pose_2d = // 计算该Node经过重力align后的相对位姿，即在submap中的位姿
+    const transform::Rigid2d local_pose_2d = // 计算该Node经过重力align后的相对位姿εij，即在submap中的位姿
         transform::Project2D(constant_data->local_pose *
                              transform::Rigid3d::Rotation(
                                  constant_data->gravity_alignment.inverse()));
-    const transform::Rigid2d global_pose_2d = // 计算该Node在世界坐标系中的绝对位姿
+    const transform::Rigid2d global_pose_2d = // 计算该Node在世界坐标系中的绝对位姿εsj
         optimization_problem_->submap_data().at(matching_id).global_pose *
         constraints::ComputeSubmapPose(*insertion_submaps.front()).inverse() *
         local_pose_2d;
@@ -379,9 +379,9 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
         finished_submap_ids.emplace_back(submap_id_data.id); // 计算该节点与submap的约束
       }
     }
-    if (newly_finished_submap) { // 如果有新的刚被finished的submap
+    if (newly_finished_submap) {
       const SubmapId newly_finished_submap_id = submap_ids.front(); // 前面那个是旧的那个，后面是新的
-      InternalSubmapData& finished_submap_data = // 获取该submap的数据
+      InternalSubmapData& finished_submap_data =
           data_.submap_data.at(newly_finished_submap_id);
       CHECK(finished_submap_data.state == SubmapState::kNoConstraintSearch);
       finished_submap_data.state = SubmapState::kFinished;
@@ -393,7 +393,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     ComputeConstraint(node_id, submap_id); // 计算约束
   }
 
-  if (newly_finished_submap) {
+  if (newly_finished_submap) { // 如果旧图切换到kFinished状态，则遍历所有已经进行过优化的节点，建立它们与旧图之间可能的约束
     const SubmapId newly_finished_submap_id = submap_ids.front();
     // We have a new completed submap, so we look into adding constraints for
     // old nodes.
@@ -467,7 +467,6 @@ void PoseGraph2D::HandleWorkQueue(
     std::map<int, NodeId> trajectory_id_to_last_optimized_node_id;
     std::map<int, SubmapId> trajectory_id_to_last_optimized_submap_id;
     {
-      // 更新轨迹之间的连接关系，并调用修饰器完成地图的修饰
       absl::MutexLock locker(&mutex_);
       const auto& submap_data = optimization_problem_->submap_data();
       const auto& node_data = optimization_problem_->node_data();
@@ -484,7 +483,7 @@ void PoseGraph2D::HandleWorkQueue(
             std::prev(submap_data.EndOfTrajectory(trajectory_id))->id);
       }
     }
-    global_slam_optimization_callback_(
+    global_slam_optimization_callback_( // map_builder_serve.cc中通过PoseGraph2D::SetGlobalSlamOptimizationCallback设置回调
         trajectory_id_to_last_optimized_submap_id,
         trajectory_id_to_last_optimized_node_id);
   }
@@ -534,7 +533,7 @@ void PoseGraph2D::HandleWorkQueue(
 void PoseGraph2D::DrainWorkQueue() {
   bool process_work_queue = true;
   size_t work_queue_size;
-  while (process_work_queue) {
+  while (process_work_queue) { // 处理掉work_queue_中所有等待的任务
     std::function<WorkItem::Result()> work_item;
     {
       absl::MutexLock locker(&work_queue_mutex_);
@@ -549,6 +548,7 @@ void PoseGraph2D::DrainWorkQueue() {
     }
     process_work_queue = work_item() == WorkItem::Result::kDoNotRunOptimization;
   }
+  // 有时还没有完全处理完队列中的所有任务，就因为状态run_loop_closure_再次为true开启新的闭环检测而退出。此时需要重新注册一下回调函数
   LOG(INFO) << "Remaining work items in queue: " << work_queue_size;
   // We have to optimize again.
   constraint_builder_.WhenDone(

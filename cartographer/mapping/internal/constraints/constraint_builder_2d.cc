@@ -113,10 +113,10 @@ void ConstraintBuilder2D::MaybeAddConstraint(
                       constant_data, initial_relative_pose, *scan_matcher,
                       constraint);
   });
-  constraint_task->AddDependency(scan_matcher->creation_task_handle);
+  constraint_task->AddDependency(scan_matcher->creation_task_handle); // 通过给Task添加依赖关系来保证，在进行约束计算之前扫描匹配器就已经完成构建和初始化
   auto constraint_task_handle =
-      thread_pool_->Schedule(std::move(constraint_task));
-  finish_node_task_->AddDependency(constraint_task_handle);
+      thread_pool_->Schedule(std::move(constraint_task)); // 将计算约束的任务添加到线程池的调度队列中
+  finish_node_task_->AddDependency(constraint_task_handle); // 将其设置为完成轨迹节点约束计算任务的依赖，保证在完成了所有计算约束的任务之后才会执行constraint_task的计算任务
 }
 
 void ConstraintBuilder2D::MaybeAddGlobalConstraint(
@@ -144,10 +144,11 @@ void ConstraintBuilder2D::MaybeAddGlobalConstraint(
   finish_node_task_->AddDependency(constraint_task_handle); // 并将其设置为完成轨迹节点约束计算任务的依赖，保证在完成了所有计算约束的任务之后才会执行constraint_task的计算任务
 }
 
+// 通知对象constraint_builder_完成了一个路径节点的插入工作
 void ConstraintBuilder2D::NotifyEndOfNode() {
   absl::MutexLock locker(&mutex_);
   CHECK(finish_node_task_ != nullptr);
-  finish_node_task_->SetWorkItem([this] {
+  finish_node_task_->SetWorkItem([this] { // 当完成了轨迹节点的约束计算后，就会增加计数器,标识着一个新的路径节点被添加到后端
     absl::MutexLock locker(&mutex_);
     ++num_finished_nodes_;
   });
@@ -170,6 +171,7 @@ void ConstraintBuilder2D::WhenDone(
   when_done_task_ = absl::make_unique<common::Task>();
 }
 
+// 为新增的子图创建一个扫描匹配器
 const ConstraintBuilder2D::SubmapScanMatcher*
 ConstraintBuilder2D::DispatchScanMatcherConstruction(const SubmapId& submap_id,
                                                      const Grid2D* const grid) {
@@ -201,7 +203,7 @@ void ConstraintBuilder2D::ComputeConstraint(
     const SubmapScanMatcher& submap_scan_matcher,
     std::unique_ptr<ConstraintBuilder2D::Constraint>* constraint) {
   CHECK(submap_scan_matcher.fast_correlative_scan_matcher);
-  const transform::Rigid2d initial_pose =
+  const transform::Rigid2d initial_pose = // 世界坐标系下路径节点与子图之间的相对位置关系
       ComputeSubmapPose(*submap) * initial_relative_pose;
 
   // The 'constraint_transform' (submap i <- node j) is computed from:
@@ -209,14 +211,14 @@ void ConstraintBuilder2D::ComputeConstraint(
   // - the initial guess 'initial_pose' for (map <- node j),
   // - the result 'pose_estimate' of Match() (map <- node j).
   // - the ComputeSubmapPose() (map <- submap i)
-  float score = 0.;
-  transform::Rigid2d pose_estimate = transform::Rigid2d::Identity();
+  float score = 0.; // 扫描匹配之后的得分
+  transform::Rigid2d pose_estimate = transform::Rigid2d::Identity(); // 扫描匹配之后的位姿估计
 
   // Compute 'pose_estimate' in three stages:
   // 1. Fast estimate using the fast correlative scan matcher.
   // 2. Prune if the score is too low.
   // 3. Refine.
-  if (match_full_submap) {
+  if (match_full_submap) { // 根据输入参数选择不同的扫描匹配方式：全地图匹配 或 定点的局部匹配
     kGlobalConstraintsSearchedMetric->Increment();
     if (submap_scan_matcher.fast_correlative_scan_matcher->MatchFullSubmap(
             constant_data->filtered_gravity_aligned_point_cloud,
@@ -244,12 +246,13 @@ void ConstraintBuilder2D::ComputeConstraint(
   }
   {
     absl::MutexLock locker(&mutex_);
-    score_histogram_.Add(score);
+    score_histogram_.Add(score); // 将新获得的约束得分统计到一个直方图中
   }
 
   // Use the CSM estimate as both the initial and previous pose. This has the
   // effect that, in the absence of better information, we prefer the original
   // CSM estimate.
+  // 使用Ceres扫描匹配进一步的对刚刚构建的约束进行优化，并将这种新建的约束标记为INTER_SUBMAP类型
   ceres::Solver::Summary unused_summary;
   ceres_scan_matcher_.Match(pose_estimate.translation(), pose_estimate,
                             constant_data->filtered_gravity_aligned_point_cloud,
