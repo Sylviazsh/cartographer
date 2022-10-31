@@ -72,6 +72,13 @@ PoseGraph2D::~PoseGraph2D() {
   CHECK(work_queue_ == nullptr);
 }
 
+/**
+ * @brief 提供子图
+ * @param trajectory_id 运行轨迹的索引
+ * @param time 调用AddNode时对应路径节点的时间戳
+ * @param insertion_submaps 从Local SLAM一路传递过来的新旧子图
+ * @return 记录insertion_submaps中各个子图分配的SubmapId的vector
+*/
 std::vector<SubmapId> PoseGraph2D::InitializeGlobalSubmapPoses(
     const int trajectory_id, const common::Time time,
     const std::vector<std::shared_ptr<const Submap2D>>& insertion_submaps) {
@@ -898,11 +905,12 @@ void PoseGraph2D::RunOptimization() {
 
     // Extrapolate all point cloud poses that were not included in the
     // 'optimization_problem_' yet.
+    // 计算SPA优化前后的世界坐标变换关系，并将之左乘在后来新增的路径节点的全局位姿上，得到修正后的轨迹
     const auto local_to_new_global =
         ComputeLocalToGlobalTransform(submap_data, trajectory_id);
     const auto local_to_old_global = ComputeLocalToGlobalTransform(
         data_.global_submap_poses_2d, trajectory_id);
-    const transform::Rigid3d old_global_to_new_global = // 计算SPA优化前后的世界坐标变换关系
+    const transform::Rigid3d old_global_to_new_global =
         local_to_new_global * local_to_old_global.inverse();
 
     const NodeId last_optimized_node_id =

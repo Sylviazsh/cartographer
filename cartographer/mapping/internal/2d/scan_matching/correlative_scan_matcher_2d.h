@@ -75,7 +75,7 @@ struct Candidate2D {
   Candidate2D(const int init_scan_index, const int init_x_index_offset,
               const int init_y_index_offset,
               const SearchParameters& search_parameters)
-      : scan_index(init_scan_index),
+      : scan_index(init_scan_index), // 角度的搜索索引
         x_index_offset(init_x_index_offset),
         y_index_offset(init_y_index_offset),
         x(-y_index_offset * search_parameters.resolution), // 相对于初始位姿的x偏移量
@@ -98,7 +98,7 @@ struct Candidate2D {
   // Score, higher is better.
   float score = 0.f;
 
-  bool operator<(const Candidate2D& other) const { return score < other.score; }
+  bool operator<(const Candidate2D& other) const { return score < other.score; } // 重载用于方便比较候选点的优劣
   bool operator>(const Candidate2D& other) const { return score > other.score; }
 };
 

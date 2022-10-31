@@ -263,6 +263,7 @@ void OptimizationProblem2D::Solve(
   MapById<NodeId, std::array<double, 3>> C_nodes;
   std::map<std::string, CeresPose> C_landmarks;
   bool first_submap = true;
+  // 遍历所有子图
   for (const auto& submap_id_data : submap_data_) {
     const bool frozen =
         frozen_trajectories.count(submap_id_data.id.trajectory_id) != 0;
@@ -273,9 +274,11 @@ void OptimizationProblem2D::Solve(
       first_submap = false;
       // Fix the pose of the first submap or all submaps of a frozen
       // trajectory.
+      // 通过SetParameterBlockConstant将对应的参数设定为常量，Ceres在迭代求解的过程中将不会改变这些参数
       problem.SetParameterBlockConstant(C_submaps.at(submap_id_data.id).data());
     }
   }
+  // 遍历所有路径节点
   for (const auto& node_id_data : node_data_) {
     const bool frozen =
         frozen_trajectories.count(node_id_data.id.trajectory_id) != 0;
@@ -286,10 +289,12 @@ void OptimizationProblem2D::Solve(
     }
   }
   // Add cost functions for intra- and inter-submap constraints.
+  // 遍历所有约束
   for (const Constraint& constraint : constraints) {
     problem.AddResidualBlock(
         CreateAutoDiffSpaCostFunction(constraint.pose),
         // Loop closure constraints should have a loss function.
+        // 如果是通过闭环检测构建的约束，则为之提供一个Huber的核函数， 用于降低错误的闭环检测对最终的优化结果带来的负面影响
         constraint.tag == Constraint::INTER_SUBMAP
             ? new ceres::HuberLoss(options_.huber_scale())
             : nullptr,

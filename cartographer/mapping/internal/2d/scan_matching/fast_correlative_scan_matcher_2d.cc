@@ -255,11 +255,11 @@ bool FastCorrelativeScanMatcher2D::MatchWithSearchParameters(
           initial_rotation.cast<float>().angle(), Eigen::Vector3f::UnitZ())));
   const std::vector<sensor::PointCloud> rotated_scans = // 获得搜索窗口下机器人朝向各个方向角时的点云数据
       GenerateRotatedScans(rotated_point_cloud, search_parameters);
-  const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans(
+  const std::vector<DiscreteScan2D> discrete_scans = DiscretizeScans( // 对旋转后的点云数据离散化。即将浮点类型的点云数据转换成整型的栅格单元索引
       limits_, rotated_scans,
       Eigen::Translation2f(initial_pose_estimate.translation().x(),
                            initial_pose_estimate.translation().y()));
-  search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits()); // 获得搜索窗口下机器人朝向各个方向角时的点云数据
+  search_parameters.ShrinkToFit(discrete_scans, limits_.cell_limits()); // 尽可能的缩小搜索窗口的大小，以减小搜索空间，提高搜索效率
 
   const std::vector<Candidate2D> lowest_resolution_candidates = // 对搜索空间进行第一次分割，得到初始子空间节点集合{C0}
       ComputeLowestResolutionCandidates(discrete_scans, search_parameters); // 该函数在最低分辨率的栅格地图上查表得到各个搜索节点c∈{C0}的上界，并降序排列
@@ -338,7 +338,7 @@ void FastCorrelativeScanMatcher2D::ScoreCandidates(
     const std::vector<DiscreteScan2D>& discrete_scans,
     const SearchParameters& search_parameters,
     std::vector<Candidate2D>* const candidates) const {
-  for (Candidate2D& candidate : *candidates) {
+  for (Candidate2D& candidate : *candidates) { // 计算所有点云的hit概率
     int sum = 0;
     for (const Eigen::Array2i& xy_index :
          discrete_scans[candidate.scan_index]) {
