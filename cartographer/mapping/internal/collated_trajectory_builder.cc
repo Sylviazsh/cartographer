@@ -37,7 +37,7 @@ CollatedTrajectoryBuilder::CollatedTrajectoryBuilder(
       collate_landmarks_(trajectory_options.collate_landmarks()),
       collate_fixed_frame_(trajectory_options.collate_fixed_frame()),
       trajectory_id_(trajectory_id),
-      wrapped_trajectory_builder_(std::move(wrapped_trajectory_builder)),
+      wrapped_trajectory_builder_(std::move(wrapped_trajectory_builder)), // wrapped_trajectory_builder_ = GlobalTrajectoryBuilder<LocalTrajectoryBuilder2D, mapping::PoseGraph2D>
       last_logging_time_(std::chrono::steady_clock::now()) {
   absl::flat_hash_set<std::string> expected_sensor_id_strings;
   for (const auto& sensor_id : expected_sensor_ids) {
@@ -83,7 +83,7 @@ void CollatedTrajectoryBuilder::HandleCollatedSensorData(
     last_logging_time_ = std::chrono::steady_clock::now();
   }
 
-  data->AddToTrajectoryBuilder(wrapped_trajectory_builder_.get());
+  data->AddToTrajectoryBuilder(wrapped_trajectory_builder_.get()); // 在这调用GlobalTrajectoryBuilder::AddSensorData。
 }
 
 }  // namespace mapping

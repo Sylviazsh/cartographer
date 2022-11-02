@@ -120,7 +120,7 @@ int MapBuilder::AddTrajectoryBuilder(
           SelectRangeSensorIds(expected_sensor_ids));
     }
     DCHECK(dynamic_cast<PoseGraph3D*>(pose_graph_.get())); // 检查类型转化，false则报错并记录，中止程序
-    trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
+    trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>( // trajectory_builders_= CollatedTrajectoryBuilder, wrapped_trajectory_builder_=GlobalTrajectoryBuilder
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
         CreateGlobalTrajectoryBuilder3D(
@@ -130,12 +130,12 @@ int MapBuilder::AddTrajectoryBuilder(
   } else {
     std::unique_ptr<LocalTrajectoryBuilder2D> local_trajectory_builder;
     if (trajectory_options.has_trajectory_builder_2d_options()) {
-      local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>(
+      local_trajectory_builder = absl::make_unique<LocalTrajectoryBuilder2D>( // SLAM前端
           trajectory_options.trajectory_builder_2d_options(),
           SelectRangeSensorIds(expected_sensor_ids));
     }
     DCHECK(dynamic_cast<PoseGraph2D*>(pose_graph_.get())); // 将pose_graph_对象强制转换为PoseGraph2D，并检查数据类型是否正确
-    trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>(
+    trajectory_builders_.push_back(absl::make_unique<CollatedTrajectoryBuilder>( // SLAM后端 //? CollatedTrajectoryBuilder在GlobalTrajectoryBuilder外面又封装了一层？
         trajectory_options, sensor_collator_.get(), trajectory_id,
         expected_sensor_ids,
         CreateGlobalTrajectoryBuilder2D(

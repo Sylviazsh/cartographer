@@ -53,7 +53,7 @@ class GlobalTrajectoryBuilder : public mapping::TrajectoryBuilderInterface {
   GlobalTrajectoryBuilder(const GlobalTrajectoryBuilder&) = delete;
   GlobalTrajectoryBuilder& operator=(const GlobalTrajectoryBuilder&) = delete;
 
-  void AddSensorData(
+  void AddSensorData( // 在CollatedTrajectoryBuilder::HandleCollatedSensorData中，通过data->AddToTrajectoryBuilder(wrapped_trajectory_builder_.get())调用
       const std::string& sensor_id,
       const sensor::TimedPointCloudData& timed_point_cloud_data) override {
     CHECK(local_trajectory_builder_)

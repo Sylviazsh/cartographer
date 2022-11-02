@@ -461,7 +461,7 @@ OptimizationProblem2D::CalculateOdometryBetweenNodes(
     const std::unique_ptr<transform::Rigid3d> second_node_odometry =
         InterpolateOdometry(trajectory_id, second_node_data.time);
     if (first_node_odometry != nullptr && second_node_odometry != nullptr) {
-      transform::Rigid3d relative_odometry =
+      transform::Rigid3d relative_odometry = //? (odom2/gravity2)/(odom1/gravity1)?
           transform::Rigid3d::Rotation(first_node_data.gravity_alignment) *
           first_node_odometry->inverse() * (*second_node_odometry) *
           transform::Rigid3d::Rotation(

@@ -211,12 +211,12 @@ void PoseExtrapolator::AdvanceImuTracker(const common::Time time,
     // Advance to the beginning of 'imu_data_'. 先把ImuTracker更新到IMU数据来临的那一刻
     imu_tracker->Advance(imu_data_.front().time);
   }
-  auto it = std::lower_bound( // 依次取出IMU数据队列中的数据，更新ImuTracker，直到IMU数据的时间比指定时间time要晚
+  auto it = std::lower_bound(
       imu_data_.begin(), imu_data_.end(), imu_tracker->time(),
       [](const sensor::ImuData& imu_data, const common::Time& time) {
         return imu_data.time < time;
       });
-  while (it != imu_data_.end() && it->time < time) {
+  while (it != imu_data_.end() && it->time < time) { // 依次取出IMU数据队列中的数据，更新ImuTracker，直到IMU数据的时间比指定时间time要晚
     imu_tracker->Advance(it->time);
     imu_tracker->AddImuLinearAccelerationObservation(it->linear_acceleration);
     imu_tracker->AddImuAngularVelocityObservation(it->angular_velocity);
@@ -237,10 +237,10 @@ Eigen::Vector3d PoseExtrapolator::ExtrapolateTranslation(common::Time time) {
   const TimedPose& newest_timed_pose = timed_pose_queue_.back();
   const double extrapolation_delta =
       common::ToSeconds(time - newest_timed_pose.time);
-  if (odometry_data_.size() < 2) { // 如果有里程计数据，则更信任里程计速度，直接把从里程计处获得的线速度乘以时间
+  if (odometry_data_.size() < 2) { // 没有里程计数据的话，把从Pose队列中估计的线速度乘以时间
     return extrapolation_delta * linear_velocity_from_poses_;
   }
-  return extrapolation_delta * linear_velocity_from_odometry_; // 没有里程计数据的话，把从Pose队列中估计的线速度乘以时间
+  return extrapolation_delta * linear_velocity_from_odometry_; // 如果有里程计数据，则更信任里程计速度，直接把从里程计处获得的线速度乘以时间
 }
 
 PoseExtrapolator::ExtrapolationResult

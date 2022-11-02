@@ -248,7 +248,7 @@ LocalTrajectoryBuilder2D::AddAccumulatedRangeData(
       non_gravity_aligned_pose_prediction * gravity_alignment.inverse());
 
   const sensor::PointCloud& filtered_gravity_aligned_point_cloud =
-      sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns, // 构建了自适应体素滤波器
+      sensor::AdaptiveVoxelFilter(gravity_aligned_range_data.returns, // 构建了自适应体素滤波器，滤波后不够稀疏则再滤波
                                   options_.adaptive_voxel_filter_options());
   if (filtered_gravity_aligned_point_cloud.empty()) {
     return nullptr;
@@ -347,10 +347,10 @@ void LocalTrajectoryBuilder2D::AddOdometryData(
 
 // 初始化位姿估计器
 void LocalTrajectoryBuilder2D::InitializeExtrapolator(const common::Time time) {
-  if (extrapolator_ != nullptr) {
+  if (extrapolator_ != nullptr) { // 已经初始化过，则直接返回
     return;
   }
-  CHECK(!options_.pose_extrapolator_options().use_imu_based());
+  CHECK(!options_.pose_extrapolator_options().use_imu_based()); // 不使用imu才用匹配结果初始化
   // TODO(gaschler): Consider using InitializeWithImu as 3D does.
   extrapolator_ = absl::make_unique<PoseExtrapolator>(
       ::cartographer::common::FromSeconds(options_.pose_extrapolator_options()

@@ -65,7 +65,7 @@ bool ProbabilityGrid::ApplyLookupTable(const Eigen::Array2i& cell_index,
                                        const std::vector<uint16>& table) {
   DCHECK_EQ(table.size(), kUpdateMarker); // 检查查找表的大小
   const int flat_index = ToFlatIndex(cell_index); // 栅格单元的存储索引
-  uint16* cell = &(*mutable_correspondence_cost_cells())[flat_index]; // 获取对应的栅格空闲的概率
+  uint16* cell = &(*mutable_correspondence_cost_cells())[flat_index]; // 获取对应的栅格空闲概率的指针
   if (*cell >= kUpdateMarker) { // 确保该值不会超出查找表的数组边界
     return false;
   }

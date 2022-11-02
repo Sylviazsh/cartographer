@@ -271,7 +271,8 @@ void PoseGraph2D::AddLandmarkData(int trajectory_id,
   });
 }
 
-void PoseGraph2D::ComputeConstraint(const NodeId& node_id, // 计算一个节点与一个submap的约束关系
+// 计算一个节点与一个submap的约束关系
+void PoseGraph2D::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
   bool maybe_add_local_constraint = false;
   bool maybe_add_global_constraint = false;
@@ -280,17 +281,17 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id, // 计算一个节点
   {
     absl::MutexLock locker(&mutex_);
     CHECK(data_.submap_data.at(submap_id).state == SubmapState::kFinished);
-    if (!data_.submap_data.at(submap_id).submap->insertion_finished()) {
+    if (!data_.submap_data.at(submap_id).submap->insertion_finished()) { // // 如果是未完成状态的地图不进行约束计算
       // Uplink server only receives grids when they are finished, so skip
       // constraint search before that.
       return;
     }
 
-    const common::Time node_time = GetLatestNodeTime(node_id, submap_id); // 获取该node和该submap上一次具有约束的时间
-    const common::Time last_connection_time = // 获取该node和该submap各自对应的trajectory上次connected的时间
+    const common::Time node_time = GetLatestNodeTime(node_id, submap_id); // 获取该node和 该submap中的node 中较新的时间
+    const common::Time last_connection_time = // 两个轨迹的最后连接时间
         data_.trajectory_connectivity_state.LastConnectionTime(
             node_id.trajectory_id, submap_id.trajectory_id);
-    // 如果两者对应的trajectory_id相同或者两者对应的trajectory存在一个全局约束，就可以在一个局部搜索窗口做匹配
+    // 如果节点和子图属于同一轨迹, 或者时间小于阈值，则只需进行 局部搜索窗口 的约束计算(对局部子图进行回环检测)
     if (node_id.trajectory_id == submap_id.trajectory_id || 
         node_time <
             last_connection_time +
@@ -301,7 +302,9 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id, // 计算一个节点
       // the submap's trajectory, it suffices to do a match constrained to a
       // local search window.
       maybe_add_local_constraint = true;
-    } else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
+    } 
+    // 如果节点与子图不属于同一条轨迹 并且 间隔了一段时间, 同时采样器为true，才进行 全局搜索窗口 的约束计算(对整体子图进行回环检测)
+    else if (global_localization_samplers_[node_id.trajectory_id]->Pulse()) {
       maybe_add_global_constraint = true;
     }
     constant_data = data_.trajectory_nodes.at(node_id).constant_data.get();
@@ -324,10 +327,11 @@ void PoseGraph2D::ComputeConstraint(const NodeId& node_id, // 计算一个节点
 }
 
 /**
- * @brief 计算node间的限制
+ * @brief 保存节点, 计算子图内约束, 查找回环
  * @param node_id 刚加入的节点ID
- * @param insertion_submaps Local Slam返回的insertion_submaps
+ * @param insertion_submaps active_submaps
  * @param newly_finished_submap 是否有新finished的submap的判断标志，即旧图是否结束更新
+ * @return WorkItem::Result 是否需要执行全局优化
 */
 WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     const NodeId& node_id,
@@ -336,6 +340,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
   std::vector<SubmapId> submap_ids;
   std::vector<SubmapId> finished_submap_ids;
   std::set<NodeId> newly_finished_submap_node_ids;
+  // 保存节点，计算子图内约束
   {
     absl::MutexLock locker(&mutex_);
     const auto& constant_data = // 获取节点数据
@@ -373,7 +378,7 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
                      {transform::Embed3D(constraint_transform),
                       options_.matcher_translation_weight(),
                       options_.matcher_rotation_weight()},
-                     Constraint::INTRA_SUBMAP});
+                     Constraint::INTRA_SUBMAP}); // 子图内约束
     }
 
     // TODO(gaschler): Consider not searching for constraints against
@@ -396,10 +401,12 @@ WorkItem::Result PoseGraph2D::ComputeConstraintsForNode(
     }
   }
 
+  // 回环检测
   for (const auto& submap_id : finished_submap_ids) {
-    ComputeConstraint(node_id, submap_id); // 计算约束
+    ComputeConstraint(node_id, submap_id); // 计算旧的submap和新的节点间的约束
   }
 
+  // 回环检测
   if (newly_finished_submap) { // 如果旧图切换到kFinished状态，则遍历所有已经进行过优化的节点，建立它们与旧图之间可能的约束
     const SubmapId newly_finished_submap_id = submap_ids.front();
     // We have a new completed submap, so we look into adding constraints for
@@ -490,7 +497,7 @@ void PoseGraph2D::HandleWorkQueue(
             std::prev(submap_data.EndOfTrajectory(trajectory_id))->id);
       }
     }
-    global_slam_optimization_callback_( // map_builder_serve.cc中通过PoseGraph2D::SetGlobalSlamOptimizationCallback设置回调
+    global_slam_optimization_callback_( // map_builder_serve.cc中通过PoseGraph2D::SetGlobalSlamOptimizationCallback设置回调为MapBuilderServer::OnGlobalSlamOptimizations
         trajectory_id_to_last_optimized_submap_id,
         trajectory_id_to_last_optimized_node_id);
   }
@@ -1179,6 +1186,7 @@ int PoseGraph2D::TrimmingHandle::num_submaps(const int trajectory_id) const {
   return submap_data.SizeOfTrajectoryOrZero(trajectory_id);
 }
 
+// 遍历子图，向子图插入global_pose
 MapById<SubmapId, PoseGraphInterface::SubmapData>
 PoseGraph2D::TrimmingHandle::GetOptimizedSubmapData() const {
   MapById<SubmapId, PoseGraphInterface::SubmapData> submaps;

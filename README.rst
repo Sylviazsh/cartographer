@@ -33,9 +33,11 @@ configurations.
 Getting started
 ===============
 
+* `cartographer 超详细注释代码`_.
 * Learn to use Cartographer at `our Read the Docs site`_.
 * You can ask a question by `creating an issue`_.
 
+.. _cartographer 超详细注释代码: https://github.com/xiangli0608/cartographer_detailed_comments_ws
 .. _our Read the Docs site: https://google-cartographer.readthedocs.io
 .. _creating an issue: https://github.com/cartographer-project/cartographer_ros/issues/new?labels=question
 
